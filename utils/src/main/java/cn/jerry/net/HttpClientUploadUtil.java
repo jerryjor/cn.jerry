@@ -1,30 +1,28 @@
 package cn.jerry.net;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
+import cn.jerry.logging.LogManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.GzipDecompressingEntity;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
-
-import cn.jerry.logging.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * 如果要启用gzip，请求参数中增加header即可：headers.put("Accept-Encoding", "gzip");
@@ -32,39 +30,10 @@ import org.apache.logging.log4j.Logger;
  *
  * @author zhaojiarui
  */
-public class HttpClientUtil {
+public class HttpClientUploadUtil {
     private static Logger logger = LogManager.getLogger();
 
     private static final String DEFAULT_CHARSET = "UTF-8";
-
-    /**
-     * post请求
-     *
-     * @param url
-     * @param params
-     * @param charset
-     * @param timeout
-     * @throws IOException
-     */
-    public static String httpPost(String url, Map<String, String> params, String charset, Integer timeout)
-            throws IOException {
-        return httpPost(url, null, params, charset, timeout, null, null);
-    }
-
-    /**
-     * post请求
-     *
-     * @param url
-     * @param headers
-     * @param params
-     * @param charset
-     * @param timeout
-     * @throws IOException
-     */
-    public static String httpPost(String url, Map<String, String> headers, Map<String, String> params, String charset,
-            Integer timeout) throws IOException {
-        return httpPost(url, headers, params, charset, timeout, null, null);
-    }
 
     /**
      * post请求
@@ -78,10 +47,14 @@ public class HttpClientUtil {
      * @param proxyPort
      * @throws IOException
      */
-    public static String httpPost(String url, Map<String, String> headers, Map<String, String> params, String charset,
-            Integer timeout, String proxyHost, Integer proxyPort) throws IOException {
-        logger.info("httpPost, url:[" + url + "], charset:" + charset + ", timeout:" + timeout);
-        if (url == null || url.trim().isEmpty()) return null;
+    public static String httpPost(String url, Map<String, String> headers, Map<String, String> params,
+            String fileParamName, String filePath, String charset, Integer timeout, String proxyHost, Integer proxyPort) throws IOException {
+        logger.info("httpPost, url:[" + url + "], filePath:" + filePath + ", charset:" + charset + ", timeout:"
+                + timeout);
+        if (url == null || (url = url.trim()).isEmpty()) return null;
+        if (filePath == null || (filePath = filePath.trim()).isEmpty()) return null;
+        File file = new File(filePath);
+        if (!file.exists()) return null;
         if (StringUtils.isBlank(charset)) charset = DEFAULT_CHARSET;
 
         HttpPost httpPost = null;
@@ -95,13 +68,15 @@ public class HttpClientUtil {
                     }
                 }
             }
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            builder.addBinaryBody(fileParamName, file);
             if (params != null && !params.isEmpty()) {
-                List<NameValuePair> nvpParams = new ArrayList<NameValuePair>();
                 for (Entry<String, String> param : params.entrySet()) {
-                    nvpParams.add(new BasicNameValuePair(param.getKey(), param.getValue()));
+                    builder.addTextBody(param.getKey(), param.getValue());
                 }
-                httpPost.setEntity(new UrlEncodedFormEntity(nvpParams, charset));
             }
+            HttpEntity httpEntity = builder.build();
+            httpPost.setEntity(httpEntity);
             // 设置超时
             if (timeout != null) {
                 RequestConfig timeoutConfig = RequestConfig.custom()
@@ -116,90 +91,6 @@ public class HttpClientUtil {
         }
 
         return doRequest(httpPost, charset, proxyHost, proxyPort);
-    }
-
-    /**
-     * post请求
-     *
-     * @param url
-     * @param params
-     * @param charset
-     * @param timeout
-     * @throws IOException
-     */
-    public static String httpGet(String url, Map<String, String> params, String charset, Integer timeout) throws IOException {
-        return httpGet(url, null, params, charset, timeout, null, null);
-    }
-
-    /**
-     * post请求
-     *
-     * @param url
-     * @param headers
-     * @param params
-     * @param charset
-     * @param timeout
-     * @throws IOException
-     */
-    public static String httpGet(String url, Map<String, String> headers, Map<String, String> params, String charset,
-            Integer timeout) throws IOException {
-        return httpGet(url, headers, params, charset, timeout, null, null);
-    }
-
-    /**
-     * post请求
-     *
-     * @param url
-     * @param headers
-     * @param params
-     * @param charset
-     * @param timeout
-     * @param proxyHost
-     * @param proxyPort
-     * @throws IOException
-     */
-    public static String httpGet(String url, Map<String, String> headers, Map<String, String> params, String charset,
-            Integer timeout, String proxyHost, Integer proxyPort) throws IOException {
-        logger.info("httpGet, url:[" + url + "], charset:" + charset + ", timeout:" + timeout);
-        if (url == null || url.trim().isEmpty()) return null;
-        if (StringUtils.isBlank(charset)) charset = DEFAULT_CHARSET;
-
-        HttpGet httpGet = null;
-        try {
-            if (params != null && !params.isEmpty()) {
-                StringBuilder paramBuffer = new StringBuilder();
-                for (Entry<String, String> param : params.entrySet()) {
-                    String value = null;
-                    if (param.getValue() != null) {
-                        value = URLEncoder.encode(param.getValue(), charset);
-                    }
-                    paramBuffer.append("&").append(param.getKey()).append("=").append(value);
-                }
-                url += paramBuffer.toString().replaceFirst("&", "?");
-            }
-            // 创建httppost
-            httpGet = new HttpGet(url);
-            if (headers != null && !headers.isEmpty()) {
-                for (Entry<String, String> header : headers.entrySet()) {
-                    if (header.getValue() != null) {
-                        httpGet.addHeader(header.getKey(), header.getValue());
-                    }
-                }
-            }
-            // 设置超时
-            if (timeout != null) {
-                RequestConfig timeoutConfig = RequestConfig.custom()
-                        .setSocketTimeout(timeout).setConnectTimeout(timeout)
-                        .setConnectionRequestTimeout(timeout).build();
-                httpGet.setConfig(timeoutConfig);
-            }
-        } catch (RuntimeException e) {
-            logger.error("httpGet failed, url:[" + url + "], charset:" + charset + ", timeout:"
-                    + timeout, e);
-            throw e;
-        }
-
-        return doRequest(httpGet, charset, proxyHost, proxyPort);
     }
 
     /**
