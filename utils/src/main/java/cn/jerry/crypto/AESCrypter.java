@@ -9,6 +9,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.Key;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.util.Base64;
 
 /**
  * BouncyCastle是一个开源的加解密解决方案
@@ -19,6 +20,9 @@ public class AESCrypter {
     private static final int KEY_LENGTH = 128;
     private static final String ENCODING = "UTF8";
     private static final String KEY_DOMAIN = "@ulebc.io";
+
+    private static final Base64.Encoder ENCODER = Base64.getEncoder();
+    private static final Base64.Decoder DECODER = Base64.getDecoder();
 
     private Cipher encryptCipher; // 加密工具
     private Cipher decryptCipher; // 解密工具
@@ -62,7 +66,7 @@ public class AESCrypter {
     public String encrypt(String strIn) throws Exception {
         byte[] bytes = strIn.getBytes(ENCODING);
         byte[] encryptedBytes = encryptCipher.doFinal(bytes);
-        return bytes2HexStr(encryptedBytes);
+        return ENCODER.encodeToString(encryptedBytes);
     }
 
     /**
@@ -73,46 +77,10 @@ public class AESCrypter {
      * @throws Exception
      */
     public String decrypt(String strIn) throws Exception {
-        byte[] encryptedBytes = hexStr2Bytes(strIn);
+        byte[] encryptedBytes = DECODER.decode(strIn);
         if (encryptedBytes == null) return "";
         byte[] bytes = decryptCipher.doFinal(encryptedBytes);
         return new String(bytes, ENCODING);
     }
 
-    /**
-     * 将byte数组转换为表示16进制值的字符串， 如：byte[]{8,18}转换为：0813
-     * 和 byte[] hexStr2Bytes(String) 互为可逆的转换过程
-     *
-     * @param bytesIn 需要转换的byte数组
-     * @return 转换后的字符串
-     */
-    private String bytes2HexStr(byte[] bytesIn) {
-        StringBuilder sb = new StringBuilder();
-        for (byte aBytesIn : bytesIn) {
-            String hex = Integer.toHexString(aBytesIn & 0xFF);
-            if (hex.length() == 1) {
-                hex = '0' + hex;
-            }
-            sb.append(hex.toUpperCase());
-        }
-        return sb.toString();
-    }
-
-    /**
-     * 将表示16进制值的字符串转换为byte数组
-     * 和 String bytes2HexStr(byte[]) 互为可逆的转换过程
-     *
-     * @param hexStr 需要转换的字符串
-     * @return 转换后的byte数组
-     */
-    private byte[] hexStr2Bytes(String hexStr) {
-        if (hexStr == null || (hexStr = hexStr.trim()).isEmpty()) return null;
-        byte[] result = new byte[hexStr.length() / 2];
-        for (int i = 0; i < hexStr.length() / 2; i++) {
-            int high = Integer.parseInt(hexStr.substring(i * 2, i * 2 + 1), 16);
-            int low = Integer.parseInt(hexStr.substring(i * 2 + 1, i * 2 + 2), 16);
-            result[i] = (byte) (high * 16 + low);
-        }
-        return result;
-    }
 }
