@@ -1,25 +1,25 @@
 ﻿<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>cn.jerry</groupId>
-	<artifactId>log4j2-annotation</artifactId>
-	<name>log4j2-annotation</name>
-	<packaging>jar</packaging>
-	<version>1.0.0</version>
-	<description>apache log4j2 annotation</description>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>cn.jerry</groupId>
+    <artifactId>log4j2-annotation</artifactId>
+    <name>log4j2-annotation</name>
+    <packaging>jar</packaging>
+    <version>1.0.0</version>
+    <description>apache log4j2 annotation</description>
 
-	<properties>
-		<outPath>target</outPath>
-		<env>dev</env>
-		<scmVersion>HEAD</scmVersion>
-		<java.version>1.8</java.version>
-		<maven.compiler.source>${java.version}</maven.compiler.source>
-		<maven.compiler.target>${java.version}</maven.compiler.target>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-	</properties>
+    <properties>
+        <outPath>target</outPath>
+        <env>dev</env>
+        <scmVersion>HEAD</scmVersion>
+        <java.version>1.8</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
 
-	<dependencies>
+    <dependencies>
         <!-- apache Log4j2 -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -40,39 +40,20 @@
             <version>3.3.7</version>
             <scope>provided</scope>
         </dependency>
-	</dependencies>
-	
-	<build>
-		<sourceDirectory>src/main/java</sourceDirectory>
-		<outputDirectory>${outPath}/classes</outputDirectory>
-		<directory>${outPath}</directory>
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-				<includes>
-					<include>**/*.*</include>
-				</includes>
-			</resource>
-		</resources>
-	</build>
+    </dependencies>
 
-	<repositories>
-		<repository>
-			<id>dev-central</id>
-			<name>Ule Dev Dependent Repository</name>
-			<layout>default</layout>
-			<url>http://maven.${env}.ulechina.tom.com/artifactory/repo</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
+    <build>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <outputDirectory>${outPath}/classes</outputDirectory>
+        <directory>${outPath}</directory>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.*</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
 
-	<distributionManagement>
-		<repository>
-			<id>ule-dev-repository</id>
-			<name>Ule Dev Deploy Repository</name>
-			<url>http://maven.${env}.ulechina.tom.com/artifactory/libs-releases-local</url>
-		</repository>
-	</distributionManagement>
 </project>

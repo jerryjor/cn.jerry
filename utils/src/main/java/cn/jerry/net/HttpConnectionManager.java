@@ -46,7 +46,7 @@ public class HttpConnectionManager {
 		// 每个路由最大连接数，默认是1
 		cm.setDefaultMaxPerRoute(MAX_PER_ROUTE);
 		// 可以针对特定的路由配置单独的限制
-		// cm.setMaxPerRoute(new HttpRoute(new HttpHost("www.ule.com")) , MAX_PER_ROUTE);
+		// cm.setMaxPerRoute(new HttpRoute(new HttpHost("jerry.cn")) , MAX_PER_ROUTE);
 		logger.info("init connection manager finished.");
 
         connReleaseTask.scheduleAtFixedRate(new ConnectionReleaseThread(), 1L, 5 * 60L,

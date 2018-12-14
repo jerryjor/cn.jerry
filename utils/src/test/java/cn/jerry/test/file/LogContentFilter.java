@@ -4,7 +4,6 @@ import org.apache.commons.lang.StringUtils;
 
 public class LogContentFilter implements IContentFilter {
     private static final String[] KEY_WORDS = new String[] {
-            "com.ule.tools.activemq.core.MsgReceiver",
             "OrderPaidLimitAmountProcessHandler",
             "PaymentLimitAmountBoImpl",
             "PaymentLimitAmountDAO",
@@ -12,7 +11,6 @@ public class LogContentFilter implements IContentFilter {
             "PhoneRechargePaiDanFailHandler",
             "PhoneRechargeBean",
             "TopUpSuAdminEjbImpl",
-            "com.ule.checkout.dao.Tx",
             "javax.persistence.RollbackException",
             "javax.jms.TransactionRolledBackException",
             "javax.jms.JMSException",

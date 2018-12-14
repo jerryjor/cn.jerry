@@ -7,15 +7,13 @@ public class HostnamePassAnyVerifier implements HostnameVerifier {
 
 	@Override
 	public boolean verify(String hostname, SSLSession session) {
-		// // 仅通过ule的域名
+		// // 仅通过jerry.cn的域名
 		// if (hostname != null
-		// && (hostname.endsWith("ule.com")
-		// || hostname.endsWith("ulechina.com")
-		// || hostname.endsWith("ulechina.tom.com"))) {
-		// System.out.println("hostname[" + hostname + "] is ule, pass.");
+		// && (hostname.endsWith("jerry.cn")
+		// System.out.println("hostname[" + hostname + "] is jerry.cn, pass.");
 		// return true;
 		// } else {
-		// System.out.println("hostname[" + hostname + "] is not ule, refused.");
+		// System.out.println("hostname[" + hostname + "] is not jerry.cn, refused.");
 		// return false;
 		// }
 		return true;
