@@ -1,30 +1,26 @@
 package cn.jerry.net;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
+import cn.jerry.logging.LogManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.GzipDecompressingEntity;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
-
-import cn.jerry.logging.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * 如果要启用gzip，请求参数中增加header即可：headers.put("Accept-Encoding", "gzip");
@@ -84,10 +80,10 @@ public class HttpClientUtil {
         if (url == null || url.trim().isEmpty()) return null;
         if (StringUtils.isBlank(charset)) charset = DEFAULT_CHARSET;
 
-        HttpPost httpPost = null;
+        HttpEntity httpEntity = null;
         try {
             // 创建httppost
-            httpPost = new HttpPost(url);
+            HttpPost httpPost = new HttpPost(url);
             if (headers != null && !headers.isEmpty()) {
                 for (Entry<String, String> header : headers.entrySet()) {
                     if (header.getValue() != null) {
@@ -95,13 +91,14 @@ public class HttpClientUtil {
                     }
                 }
             }
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
             if (params != null && !params.isEmpty()) {
-                List<NameValuePair> nvpParams = new ArrayList<NameValuePair>();
                 for (Entry<String, String> param : params.entrySet()) {
-                    nvpParams.add(new BasicNameValuePair(param.getKey(), param.getValue()));
+                    builder.addTextBody(param.getKey(), param.getValue());
                 }
-                httpPost.setEntity(new UrlEncodedFormEntity(nvpParams, charset));
             }
+            httpEntity = builder.build();
+            httpPost.setEntity(httpEntity);
             // 设置超时
             if (timeout != null) {
                 RequestConfig timeoutConfig = RequestConfig.custom()
@@ -109,13 +106,15 @@ public class HttpClientUtil {
                         .setConnectionRequestTimeout(timeout).build();
                 httpPost.setConfig(timeoutConfig);
             }
+            return doRequest(httpPost, charset, proxyHost, proxyPort);
         } catch (RuntimeException e) {
             logger.error("httpPost failed, url:[" + url + "], charset:" + charset + ", timeout:"
                     + timeout, e);
             throw e;
+        } finally {
+            EntityUtils.consume(httpEntity);
         }
 
-        return doRequest(httpPost, charset, proxyHost, proxyPort);
     }
 
     /**

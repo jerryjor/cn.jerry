@@ -57,10 +57,10 @@ public class HttpClientUploadUtil {
         if (!file.exists()) return null;
         if (StringUtils.isBlank(charset)) charset = DEFAULT_CHARSET;
 
-        HttpPost httpPost = null;
+        HttpEntity httpEntity = null;
         try {
             // 创建httppost
-            httpPost = new HttpPost(url);
+            HttpPost httpPost = new HttpPost(url);
             if (headers != null && !headers.isEmpty()) {
                 for (Entry<String, String> header : headers.entrySet()) {
                     if (header.getValue() != null) {
@@ -75,7 +75,7 @@ public class HttpClientUploadUtil {
                     builder.addTextBody(param.getKey(), param.getValue());
                 }
             }
-            HttpEntity httpEntity = builder.build();
+            httpEntity = builder.build();
             httpPost.setEntity(httpEntity);
             // 设置超时
             if (timeout != null) {
@@ -84,13 +84,15 @@ public class HttpClientUploadUtil {
                         .setConnectionRequestTimeout(timeout).build();
                 httpPost.setConfig(timeoutConfig);
             }
+            return doRequest(httpPost, charset, proxyHost, proxyPort);
         } catch (RuntimeException e) {
             logger.error("httpPost failed, url:[" + url + "], charset:" + charset + ", timeout:"
                     + timeout, e);
             throw e;
+        } finally {
+            EntityUtils.consume(httpEntity);
         }
 
-        return doRequest(httpPost, charset, proxyHost, proxyPort);
     }
 
     /**

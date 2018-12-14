@@ -40,7 +40,7 @@ public class IpAddressBaidu implements IIpAddressService {
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("ak", APPKEY_BAIDU);
 			params.put("ip", ip);
-			// params.put("sn", MD5.genMd5(URI + "?ak=" + APPKEY_BAIDU + "&ip=" + ip +
+			// params.put("sn", MD5WithBase64.genMd5(URI + "?ak=" + APPKEY_BAIDU + "&ip=" + ip +
 			// APPSEC_BAIDU));
 			response = HttpClientUtil.httpPost(HOST_BAIDU + URI_BAIDU, params, null, null);
 		} catch (Exception e) {
