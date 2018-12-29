@@ -21,32 +21,30 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * 如果要启用gzip，请求参数中增加header即可：headers.put("Accept-Encoding", "gzip");
  * 如果要绑定Cookie，也在header中设置即可：headers.put("Cookie", "cookieName=cookieValue");
  *
  * @author zhaojiarui
  */
 public class HttpClientUtilWithoutPool {
     private static Logger logger = LogManager.getLogger();
-
     private static final String DEFAULT_CHARSET = "UTF-8";
+    private CloseableHttpClient httpClient = null;
 
     /**
      * post请求
      *
      * @param url
      * @param params
-     * @param charset
      * @param timeout
      * @throws IOException
      */
-    public static String httpPost(String url, Map<String, String> params, String charset, Integer timeout)
-            throws IOException {
-        return httpPost(url, null, params, charset, timeout);
+    public String httpPost(String url, Map<String, String> params, Integer timeout) throws IOException {
+        return httpPost(url, null, params, DEFAULT_CHARSET, timeout, false);
     }
 
     /**
@@ -59,11 +57,14 @@ public class HttpClientUtilWithoutPool {
      * @param timeout
      * @throws IOException
      */
-    public static String httpPost(String url, Map<String, String> headers, Map<String, String> params, String charset,
-            Integer timeout) throws IOException {
-        logger.info("httpPost, url:[" + url + "], charset:" + charset + ", timeout:" + timeout);
-        if (url == null || url.trim().isEmpty()) return null;
+    public String httpPost(String url, Map<String, String> headers, Map<String, String> params, String charset,
+            Integer timeout, boolean withGzip) throws IOException {
+        if (url == null || (url = url.trim()).isEmpty()) return null;
         if (StringUtils.isBlank(charset)) charset = DEFAULT_CHARSET;
+        if (withGzip) {
+            if (headers == null) headers = new HashMap<>();
+            headers.put("Accept-Encoding", "gzip");
+        }
 
         HttpEntity httpEntity = null;
         try {
@@ -106,13 +107,11 @@ public class HttpClientUtilWithoutPool {
      *
      * @param url
      * @param params
-     * @param charset
      * @param timeout
      * @throws IOException
      */
-    public static String httpGet(String url, Map<String, String> params, String charset, Integer timeout)
-            throws IOException {
-        return httpGet(url, null, params, charset, timeout);
+    public String httpGet(String url, Map<String, String> params, Integer timeout) throws IOException {
+        return httpGet(url, null, params, DEFAULT_CHARSET, timeout);
     }
 
     /**
@@ -125,10 +124,9 @@ public class HttpClientUtilWithoutPool {
      * @param timeout
      * @throws IOException
      */
-    public static String httpGet(String url, Map<String, String> headers, Map<String, String> params, String charset,
+    public String httpGet(String url, Map<String, String> headers, Map<String, String> params, String charset,
             Integer timeout) throws IOException {
-        logger.info("httpGet, url:[" + url + "], charset:" + charset + ", timeout:" + timeout);
-        if (url == null || url.trim().isEmpty()) return null;
+        if (url == null || (url = url.trim()).isEmpty()) return null;
         if (StringUtils.isBlank(charset)) charset = DEFAULT_CHARSET;
 
         HttpGet httpGet = null;
@@ -176,66 +174,51 @@ public class HttpClientUtilWithoutPool {
      * @return
      * @throws IOException
      */
-    private static String doRequest(HttpUriRequest request, String charset) throws IOException {
+    private String doRequest(HttpUriRequest request, String charset) throws IOException {
         if (request == null) return null;
-        logger.info("doRequest start, uri:[" + request.getURI() + "]");
         long st = System.currentTimeMillis();
 
-        CloseableHttpClient httpClient = null;
         String responseStr = null;
+        CloseableHttpResponse response = null;
+        InputStream in = null;
         try {
             // 创建的httpClient实例.
-            httpClient = HttpClientBuilder.create()
-                    .setRetryHandler(new DefaultHttpRequestRetryHandler(0, false))
-                    .build();
-            CloseableHttpResponse response = null;
-            InputStream in = null;
-            try {
-                response = httpClient.execute(request);
-                int statusCode = response.getStatusLine().getStatusCode();
-                if (HttpStatus.SC_OK == statusCode) {
-                    in = response.getEntity().getContent();
-                    if (withGzip(response)) {
-                        responseStr = EntityUtils.toString(
-                                new GzipDecompressingEntity(response.getEntity()), charset);
-                    } else {
-                        responseStr = EntityUtils.toString(response.getEntity(), charset);
-                    }
+            httpClient = getHttpClient();
+            response = httpClient.execute(request);
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (HttpStatus.SC_OK == statusCode) {
+                in = response.getEntity().getContent();
+                if (withGzip(response)) {
+                    responseStr = EntityUtils.toString(
+                            new GzipDecompressingEntity(response.getEntity()), charset);
                 } else {
-                    request.abort();
-                    responseStr = "{\"server status\":" + statusCode + "}";
-                    logger.warn("doRequest, server status:" + statusCode + ", uri:[" + request.getURI() + "]");
+                    responseStr = EntityUtils.toString(response.getEntity(), charset);
                 }
-            } finally {
-                // in.close()作用就是将用完的连接释放，下次请求可以复用
-                // 这里特别注意的是，如果不使用in.close()而仅仅使用response.close()，
-                // 结果就是连接会被关闭，并且不能被复用，就失去了采用连接池的意义。
-                if (in != null) {
-                    try {
-                        in.close();
-                    } catch (IOException ioe) {
-                        logger.error("doRequest, close response failed.", ioe);
-                    }
-                }
-                if (response != null) {
-                    try {
-                        response.close();
-                    } catch (IOException ioe) {
-                        logger.error("doRequest, close response failed.", ioe);
-                    }
-                }
+            } else {
+                request.abort();
+                responseStr = "{\"server status\":" + statusCode + "}";
+                logger.warn("doRequest, server status:" + statusCode + ", uri:[" + request.getURI() + "]");
             }
         } catch (IOException e) {
-            if (request != null) request.abort();
-            logger.error("doRequest, uri:[" + request.getURI() + "]", e);
+            request.abort();
+            logger.error("doRequest failed, uri:[" + request.getURI() + "]", e);
             throw e;
         } finally {
-            if (httpClient != null) {
-                // 关闭连接,释放资源
+            // in.close()作用就是将用完的连接释放，下次请求可以复用
+            // 这里特别注意的是，如果不使用in.close()而仅仅使用response.close()，
+            // 结果就是连接会被关闭，并且不能被复用，就失去了采用连接池的意义。
+            if (in != null) {
                 try {
-                    httpClient.close();
+                    in.close();
                 } catch (IOException ioe) {
-                    logger.error("close http client failed.", ioe);
+                    logger.error("doRequest, close response failed.", ioe);
+                }
+            }
+            if (response != null) {
+                try {
+                    response.close();
+                } catch (IOException ioe) {
+                    logger.error("doRequest, close response failed.", ioe);
                 }
             }
         }
@@ -245,13 +228,22 @@ public class HttpClientUtilWithoutPool {
         return responseStr;
     }
 
+    private CloseableHttpClient getHttpClient() {
+        if (httpClient == null) {
+            httpClient = HttpClientBuilder.create()
+                    .setRetryHandler(new DefaultHttpRequestRetryHandler(0, false))
+                    .build();
+        }
+        return httpClient;
+    }
+
     /**
      * 判断返回数据是否启用gzip压缩
      *
      * @param response
      * @return
      */
-    private static boolean withGzip(CloseableHttpResponse response) {
+    private boolean withGzip(CloseableHttpResponse response) {
         Header[] headers = response.getHeaders("Content-Encoding");
         if (headers == null || headers.length == 0) return false;
         for (Header h : headers) {
@@ -261,5 +253,20 @@ public class HttpClientUtilWithoutPool {
             }
         }
         return false;
+    }
+
+    /**
+     * 关闭连接,释放资源
+     */
+    public void close() {
+        if (httpClient == null) return;
+
+        try {
+            httpClient.close();
+        } catch (IOException ioe) {
+            logger.error("close http client failed.", ioe);
+        }
+
+        httpClient = null;
     }
 }

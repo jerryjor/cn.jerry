@@ -126,7 +126,8 @@ public class HttpClientUtil {
      * @param timeout
      * @throws IOException
      */
-    public static String httpGet(String url, Map<String, String> params, String charset, Integer timeout) throws IOException {
+    public static String httpGet(String url, Map<String, String> params, String charset, Integer timeout)
+            throws IOException {
         return httpGet(url, null, params, charset, timeout, null, null);
     }
 
@@ -193,8 +194,7 @@ public class HttpClientUtil {
                 httpGet.setConfig(timeoutConfig);
             }
         } catch (RuntimeException e) {
-            logger.error("httpGet failed, url:[" + url + "], charset:" + charset + ", timeout:"
-                    + timeout, e);
+            logger.error("httpGet failed, url:[" + url + "], charset:" + charset + ", timeout:" + timeout, e);
             throw e;
         }
 
@@ -242,8 +242,7 @@ public class HttpClientUtil {
                 } else {
                     request.abort();
                     responseStr = "{\"server status\":" + statusCode + "}";
-                    logger.warn("doRequest, server status:" + statusCode
-                            + ", uri:[" + request.getURI() + "]");
+                    logger.warn("doRequest, server status:" + statusCode + ", uri:[" + request.getURI() + "]");
                 }
             } finally {
                 // in.close()作用就是将用完的连接释放，下次请求可以复用
