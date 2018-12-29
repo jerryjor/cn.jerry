@@ -28,7 +28,7 @@ public class JacksonTester {
             String response = new HttpRequesterWithPool.HttpUriRequestBuilder(url)
                     .addHeaders(head)
                     .addParams(dataBody)
-                    .setTimeout(3000)
+                    .setSocketTimeout(3000)
                     .build()
                     .doRequest();
             System.out.println(response);

@@ -150,7 +150,9 @@ public class HttpRequesterWithoutPool {
         private Map<String, String> headers = new HashMap<>();
         private Map<String, String> params = new HashMap<>();
         private Charset charset;
-        private Integer timeout;
+        private Integer socketTimeout;
+        private Integer connTimeout;
+        private Integer connReqTimeout;
         private boolean withGzip = false;
         private String proxyHost;
         private Integer proxyPort;
@@ -182,8 +184,18 @@ public class HttpRequesterWithoutPool {
             return this;
         }
 
-        public HttpUriRequestBuilder setTimeout(Integer timeout) {
-            this.timeout = timeout;
+        public HttpUriRequestBuilder setSocketTimeout(Integer socketTimeout) {
+            this.socketTimeout = socketTimeout;
+            return this;
+        }
+
+        public HttpUriRequestBuilder setConnTimeout(Integer connTimeout) {
+            this.connTimeout = connTimeout;
+            return this;
+        }
+
+        public HttpUriRequestBuilder setConnReqTimeout(Integer connReqTimeout) {
+            this.connReqTimeout = connReqTimeout;
             return this;
         }
 
@@ -223,12 +235,20 @@ public class HttpRequesterWithoutPool {
                 }
             }
             // 设置超时
-            if (this.timeout != null) {
-                RequestConfig timeoutConfig = RequestConfig.custom()
-                        .setSocketTimeout(this.timeout).setConnectTimeout(this.timeout)
-                        .setConnectionRequestTimeout(this.timeout).build();
-                request.setConfig(timeoutConfig);
+            RequestConfig.Builder timeoutBuilder = RequestConfig.custom();
+            // socket读数据超时时间：从服务器获取响应数据的超时时间
+            if (this.socketTimeout != null) {
+                timeoutBuilder.setSocketTimeout(this.socketTimeout);
             }
+            // 与服务器连接超时时间：httpclient会创建一个异步线程用以创建socket连接，此处设置该socket的连接超时时间
+            if (this.connTimeout != null) {
+                timeoutBuilder.setConnectTimeout(this.connTimeout);
+            }
+            //从连接池中获取连接的超时时间
+            if (this.connReqTimeout != null) {
+                timeoutBuilder.setConnectionRequestTimeout(this.connReqTimeout);
+            }
+            request.setConfig(timeoutBuilder.build());
 
             return new HttpRequesterWithoutPool(request, this.charset, this.proxyHost, this.proxyPort);
         }

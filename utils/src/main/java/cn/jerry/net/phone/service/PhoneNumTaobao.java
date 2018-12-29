@@ -38,7 +38,7 @@ public class PhoneNumTaobao implements IPhoneNumService {
 			response = new HttpRequesterWithPool.HttpUriRequestBuilder(HOST_TAOBAO + URI_TAOBAO)
                     .addParam(PARAM_TAOBAO, phoneNum)
                     .setCharset(Charset.forName("GBK"))
-                    .setTimeout(30000)
+                    .setSocketTimeout(30000)
                     .build()
                     .doRequest();
 		} catch (Exception e) {
