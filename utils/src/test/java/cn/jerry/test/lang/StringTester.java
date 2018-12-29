@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import cn.jerry.json.JsonUtil;
-import cn.jerry.lang.UqStringTool;
-
 public class StringTester {
 	private static String line = "LINE";
 	private static String text = "000000||20160826|0|0001tmp/13.txt|1| 接水点号: [000186385 ] 最小可用票号: [ ] 已打印行号：[ ]LINE 用户名称: [苏喜漫 ] 手机号码: [ ]LINE 用户地址: [雨花区长重社区2区4栋208() ]LINE 欠费笔数: [ 2]LINE 欠费金额: [ 13.16] 其中违约金: [ 0]LINE 上次节余: [ 0.76] 计费开始日期: [20110720 ]LINE 应缴金额: [ 12.40] 结束日期: [20110820 ]LINELINE--------------------------------欠--费--明--细--------------------------------LINE 欠费年月 欠费金额 水费标识号 其中.欠水费..违约金(滞纳金)LINE [20110720 ] [ 13.16] [ ] [ ] [ ]LINE [20110820 ] [ 13.16] [ ] [ ] [ ]|";
@@ -57,7 +54,7 @@ public class StringTester {
 	/**
 	 * 解析明细
 	 * 
-	 * @param detailPart
+	 * @param detailText
 	 * @return
 	 */
 	private static List<LinkedHashMap<String, String>> readDetail(String detailText) {

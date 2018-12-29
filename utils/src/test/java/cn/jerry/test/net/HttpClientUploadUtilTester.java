@@ -1,8 +1,8 @@
 package cn.jerry.test.net;
 
 import cn.jerry.json.JsonUtil;
-import cn.jerry.net.HttpClientUploadUtil;
-import cn.jerry.net.HttpClientUtil;
+import cn.jerry.net.HttpRequesterWithPool;
+import cn.jerry.net.HttpUploadUtil;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -28,7 +28,12 @@ public class HttpClientUploadUtilTester {
         params.put("password", "user123");
 
         try {
-            String response = HttpClientUtil.httpPost(url, headers, params, null, 6000);
+            String response = new HttpRequesterWithPool.HttpUriRequestBuilder(url)
+                    .addHeaders(headers)
+                    .addParams(params)
+                    .setTimeout(6000)
+                    .build()
+                    .doRequest();
             System.out.println(response);
         } catch (IOException e) {
             e.printStackTrace();
@@ -44,7 +49,7 @@ public class HttpClientUploadUtilTester {
         params.put("chaincode", "{\"name\":\"tester\",\"version\":\"1.0\",\"lang\":\"JAVA\"}");
 
         try {
-            String response = HttpClientUploadUtil.httpPost(url, headers, params, "file",
+            String response = HttpUploadUtil.httpPost(url, headers, params, "file",
                     "/home/zhaojiarui/merchantChaincode.zip", null, 120000, null, null);
             System.out.println(response);
         } catch (IOException e) {
@@ -61,7 +66,7 @@ public class HttpClientUploadUtilTester {
         params.put("chaincode", "{\"name\":\"tester\",\"version\":\"1.1\",\"lang\":\"JAVA\"}");
 
         try {
-            String response = HttpClientUploadUtil.httpPost(url, headers, params, "file",
+            String response = HttpUploadUtil.httpPost(url, headers, params, "file",
                     "/home/zhaojiarui/merchantChaincode.zip", null, 120000, null, null);
             System.out.println(response);
         } catch (IOException e) {
@@ -84,7 +89,12 @@ public class HttpClientUploadUtilTester {
         }
 
         try {
-            String response = HttpClientUtil.httpPost(url, headers, params, null, 6000);
+            String response = new HttpRequesterWithPool.HttpUriRequestBuilder(url)
+                    .addHeaders(headers)
+                    .addParams(params)
+                    .setTimeout(6000)
+                    .build()
+                    .doRequest();
             System.out.println(response);
         } catch (IOException e) {
             e.printStackTrace();
@@ -105,7 +115,12 @@ public class HttpClientUploadUtilTester {
         }
 
         try {
-            String response = HttpClientUtil.httpPost(url, headers, params, null, 6000);
+            String response = new HttpRequesterWithPool.HttpUriRequestBuilder(url)
+                    .addHeaders(headers)
+                    .addParams(params)
+                    .setTimeout(6000)
+                    .build()
+                    .doRequest();
             System.out.println(JsonUtil.formatJsonStr(response, "  "));
         } catch (IOException e) {
             e.printStackTrace();

@@ -1,13 +1,12 @@
 package cn.jerry.net.ip.service;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import cn.jerry.json.JsonUtil;
 import cn.jerry.model.ResultCode;
-import cn.jerry.net.HttpClientUtil;
+import cn.jerry.net.HttpRequesterWithPool;
 import cn.jerry.net.ip.Address;
 import cn.jerry.net.ip.IpAddressResult;
+
+import java.util.Map;
 
 public class IpAddressBaidu implements IIpAddressService {
 	private static final String HOST_BAIDU = "http://api.map.baidu.com";
@@ -37,12 +36,12 @@ public class IpAddressBaidu implements IIpAddressService {
 
 		String response = null;
 		try {
-			Map<String, String> params = new HashMap<String, String>();
-			params.put("ak", APPKEY_BAIDU);
-			params.put("ip", ip);
-			// params.put("sn", MD5WithBase64.genMd5(URI + "?ak=" + APPKEY_BAIDU + "&ip=" + ip +
-			// APPSEC_BAIDU));
-			response = HttpClientUtil.httpPost(HOST_BAIDU + URI_BAIDU, params, null, null);
+			// params.put("sn", MD5WithBase64.genMd5(URI + "?ak=" + APPKEY_BAIDU + "&ip=" + ip + APPSEC_BAIDU));
+            response = new HttpRequesterWithPool.HttpUriRequestBuilder(HOST_BAIDU + URI_BAIDU)
+                    .addParam("ak", APPKEY_BAIDU)
+                    .addParam("ip", ip)
+                    .build()
+                    .doRequest();
 		} catch (Exception e) {
 			result.setCode(ResultCode.FAILED);
 			result.setMessage("call service failed:[" + e.getMessage() + "]");

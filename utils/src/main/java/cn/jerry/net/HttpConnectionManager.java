@@ -28,11 +28,10 @@ import org.apache.logging.log4j.Logger;
 public class HttpConnectionManager {
 	private static Logger logger = LogManager.getLogger();
 
-	private static final int MAX_TOTAL = 100;
-	private static final int MAX_PER_ROUTE = 50;
+	private static final int MAX_TOTAL = 32;
+	private static final int MAX_PER_ROUTE = 8;
 
 	private static PoolingHttpClientConnectionManager cm;
-
     private static ScheduledExecutorService connReleaseTask = Executors.newSingleThreadScheduledExecutor();
 
 	static {

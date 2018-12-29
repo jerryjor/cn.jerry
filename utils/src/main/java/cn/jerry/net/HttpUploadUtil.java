@@ -30,7 +30,7 @@ import java.util.Map.Entry;
  *
  * @author zhaojiarui
  */
-public class HttpClientUploadUtil {
+public class HttpUploadUtil {
     private static Logger logger = LogManager.getLogger();
 
     private static final String DEFAULT_CHARSET = "UTF-8";

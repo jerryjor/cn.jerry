@@ -1,12 +1,11 @@
 package cn.jerry.net.phone.service;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import cn.jerry.model.ResultCode;
-import cn.jerry.net.HttpClientUtil;
+import cn.jerry.net.HttpRequesterWithPool;
 import cn.jerry.net.phone.PhoneNumRegion;
 import cn.jerry.net.phone.PhoneNumRegionResult;
+
+import java.nio.charset.Charset;
 
 public class PhoneNumTaobao implements IPhoneNumService {
 	private static final String HOST_TAOBAO = "https://tcc.taobao.com";
@@ -21,7 +20,7 @@ public class PhoneNumTaobao implements IPhoneNumService {
 	/**
 	 * 限制：未知
 	 * 
-	 * @param ip
+	 * @param phoneNum
 	 * @return
 	 */
 	@Override
@@ -36,9 +35,12 @@ public class PhoneNumTaobao implements IPhoneNumService {
 
 		String response = null;
 		try {
-			Map<String, String> params = new HashMap<String, String>();
-			params.put(PARAM_TAOBAO, phoneNum);
-			response = HttpClientUtil.httpPost(HOST_TAOBAO + URI_TAOBAO, params, "GBK", 30000);
+			response = new HttpRequesterWithPool.HttpUriRequestBuilder(HOST_TAOBAO + URI_TAOBAO)
+                    .addParam(PARAM_TAOBAO, phoneNum)
+                    .setCharset(Charset.forName("GBK"))
+                    .setTimeout(30000)
+                    .build()
+                    .doRequest();
 		} catch (Exception e) {
 			result.setCode(ResultCode.FAILED);
 			result.setMessage("call service failed:[" + e.getMessage() + "]");

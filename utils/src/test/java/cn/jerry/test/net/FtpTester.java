@@ -5,8 +5,8 @@ import java.io.IOException;
 import java.util.List;
 
 import cn.jerry.file.FileUtil;
-import cn.jerry.net.FtpFileLoader;
-import cn.jerry.net.HttpFileLoader;
+import cn.jerry.net.FtpDownloadUtil;
+import cn.jerry.net.HttpDownloadUtil;
 
 public class FtpTester {
 	public static void main(String[] args) {
@@ -22,7 +22,7 @@ public class FtpTester {
 	}
 
 	public byte[] testDownloadHttp(String url) {
-		HttpFileLoader loader = new HttpFileLoader();
+		HttpDownloadUtil loader = new HttpDownloadUtil();
 		try {
 			return loader.loadFromHttp(url);
 		} catch (IOException e) {
@@ -34,7 +34,7 @@ public class FtpTester {
 	public byte[] testDownloadFtp(String host, Integer port, String user, String pwd,
 			String baseDir,
 			String fileName, String charset) {
-		FtpFileLoader loader = new FtpFileLoader();
+		FtpDownloadUtil loader = new FtpDownloadUtil();
 		byte[] content = null;
 		// 19pay
 		try {

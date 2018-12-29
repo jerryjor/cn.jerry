@@ -1,13 +1,12 @@
 package cn.jerry.net.ip.service;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import cn.jerry.json.JsonUtil;
 import cn.jerry.model.ResultCode;
-import cn.jerry.net.HttpClientUtil;
+import cn.jerry.net.HttpRequesterWithPool;
 import cn.jerry.net.ip.Address;
 import cn.jerry.net.ip.IpAddressResult;
+
+import java.util.Map;
 
 public class IpAddressTaobao implements IIpAddressService {
 	private static final String HOST_TAOBAO = "http://ip.taobao.com";
@@ -35,9 +34,10 @@ public class IpAddressTaobao implements IIpAddressService {
 
 		String response = null;
 		try {
-			Map<String, String> params = new HashMap<String, String>();
-			params.put("ip", ip);
-			response = HttpClientUtil.httpPost(HOST_TAOBAO + URI_TAOBAO, params, null, null);
+            response = new HttpRequesterWithPool.HttpUriRequestBuilder(HOST_TAOBAO + URI_TAOBAO)
+                    .addParam("ip", ip)
+                    .build()
+                    .doRequest();
 		} catch (Exception e) {
 			result.setCode(ResultCode.FAILED);
 			result.setMessage("call service failed:[" + e.getMessage() + "]");
