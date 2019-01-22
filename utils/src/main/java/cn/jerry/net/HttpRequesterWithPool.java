@@ -58,18 +58,17 @@ public class HttpRequesterWithPool {
         try {
             response = httpClient.execute(request);
             int statusCode = response.getStatusLine().getStatusCode();
-            if (HttpStatus.SC_OK == statusCode) {
-                in = response.getEntity().getContent();
-                if (withGzip(response)) {
-                    responseStr = EntityUtils.toString(
-                            new GzipDecompressingEntity(response.getEntity()), charset);
-                } else {
-                    responseStr = EntityUtils.toString(response.getEntity(), charset);
-                }
+            in = response.getEntity().getContent();
+            if (withGzip(response)) {
+                responseStr = EntityUtils.toString(
+                        new GzipDecompressingEntity(response.getEntity()), charset);
             } else {
-                request.abort();
-                responseStr = "{\"server status\":" + statusCode + "}";
-                logger.warn("doRequest, server status:" + statusCode + ", uri:[" + request.getURI() + "]");
+                responseStr = EntityUtils.toString(response.getEntity(), charset);
+            }
+            if (HttpStatus.SC_OK != statusCode) {
+                responseStr = "{\"status\":" + statusCode + ",\"entity\":\"" + responseStr + "\"}";
+                logger.warn("doRequest, server status: {}, uri: [{}], entity : {}", statusCode, request.getURI(),
+                        (isHtml(responseStr) ? "a html" : responseStr));
             }
         } catch (IOException e) {
             request.abort();
@@ -110,6 +109,10 @@ public class HttpRequesterWithPool {
             }
         }
         return false;
+    }
+
+    private boolean isHtml(String str) {
+        return str != null && !(str = str.trim()).isEmpty() && str.charAt(0) == '<';
     }
 
     public static class HttpUriRequestBuilder {

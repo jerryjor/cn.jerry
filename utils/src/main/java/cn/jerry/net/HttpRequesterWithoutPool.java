@@ -17,6 +17,7 @@ import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -51,12 +52,22 @@ public class HttpRequesterWithoutPool {
     }
 
     /**
-     * 执行请求
+     * 执行普通请求
      *
      * @return response content
      * @throws IOException @see CloseableHttpClient.execute(HttpUriRequest)
      */
     public String doPost(Map<String, String> params) throws IOException {
+        return doPost(params, null, null);
+    }
+
+    /**
+     * 执行文件上传请求
+     *
+     * @return response content
+     * @throws IOException @see CloseableHttpClient.execute(HttpUriRequest)
+     */
+    public String doPost(Map<String, String> params, String fileParamName, String filePath) throws IOException {
         logger.debug("doRequest start, uri:[" + request.getURI() + "]");
         long st = System.currentTimeMillis();
 
@@ -65,29 +76,35 @@ public class HttpRequesterWithoutPool {
         InputStream in = null;
         try {
             request.setEntity(null);
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            if (fileParamName != null && !fileParamName.isEmpty()
+                    && filePath != null && !(filePath = filePath.trim()).isEmpty()) {
+                File file = new File(filePath);
+                if (file.exists()) {
+                    builder.addBinaryBody(fileParamName, file);
+                }
+            }
             if (!params.isEmpty()) {
-                MultipartEntityBuilder builder = MultipartEntityBuilder.create();
                 for (Entry<String, String> param : params.entrySet()) {
                     builder.addTextBody(param.getKey(), param.getValue());
                 }
-                HttpEntity httpEntity = builder.build();
-                request.setEntity(httpEntity);
             }
+            HttpEntity httpEntity = builder.build();
+            request.setEntity(httpEntity);
 
             response = httpClient.execute(request);
             int statusCode = response.getStatusLine().getStatusCode();
-            if (HttpStatus.SC_OK == statusCode) {
-                in = response.getEntity().getContent();
-                if (withGzip(response)) {
-                    responseStr = EntityUtils.toString(
-                            new GzipDecompressingEntity(response.getEntity()), charset);
-                } else {
-                    responseStr = EntityUtils.toString(response.getEntity(), charset);
-                }
+            in = response.getEntity().getContent();
+            if (withGzip(response)) {
+                responseStr = EntityUtils.toString(
+                        new GzipDecompressingEntity(response.getEntity()), charset);
             } else {
-                request.abort();
-                responseStr = "{\"server status\":" + statusCode + "}";
-                logger.warn("doRequest, server status:" + statusCode + ", uri:[" + request.getURI() + "]");
+                responseStr = EntityUtils.toString(response.getEntity(), charset);
+            }
+            if (HttpStatus.SC_OK != statusCode) {
+                responseStr = "{\"status\":" + statusCode + ",\"entity\":\"" + responseStr + "\"}";
+                logger.warn("doRequest, server status: {}, uri: [{}], entity : {}", statusCode, request.getURI(),
+                        (isHtml(responseStr) ? "a html" : responseStr));
             }
         } catch (IOException e) {
             request.abort();
@@ -128,6 +145,10 @@ public class HttpRequesterWithoutPool {
             }
         }
         return false;
+    }
+
+    private boolean isHtml(String str) {
+        return str != null && !(str = str.trim()).isEmpty() && str.charAt(0) == '<';
     }
 
     /**
