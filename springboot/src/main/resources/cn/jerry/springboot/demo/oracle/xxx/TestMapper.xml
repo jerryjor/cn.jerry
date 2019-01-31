@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.jerry.springboot.demo.db.dao.oracle.xxx.TestDao">
+    <!-- Result Map-->
+    <resultMap id="BaseResultMap" type="cn.jerry.springboot.demo.db.dto.TestDto">
+        <result column="rr" property="result"/>
+    </resultMap>
+
+    <select id="testQuery" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT 'succeed' as rr FROM dual WHERE '0' &lt; #{param}
+    </select>
+
+</mapper>
