@@ -1,0 +1,21 @@
+OrdererOrgs:
+  - Name: Orderer
+    Domain: dev.jerry.cn
+    CA:
+        Country: CN
+        Province: Shanghai
+        Locality: Shanghai
+    Specs:
+      - Hostname: orderer0
+PeerOrgs:
+  - Name: jerry
+    Domain: dev.jerry.cn
+    EnableNodeOUs: true
+    CA:
+        Country: CN
+        Province: Shanghai
+        Locality: Shanghai
+    Template:
+      Count: 2
+    Users:
+      Count: 1
