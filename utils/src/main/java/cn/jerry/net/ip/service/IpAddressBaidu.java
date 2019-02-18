@@ -36,12 +36,12 @@ public class IpAddressBaidu implements IIpAddressService {
 
 		String response = null;
 		try {
-			// params.put("sn", MD5WithBase64.genMd5(URI + "?ak=" + APPKEY_BAIDU + "&ip=" + ip + APPSEC_BAIDU));
+			// params.put("sn", MD5Util.genMd5(URI + "?ak=" + APPKEY_BAIDU + "&ip=" + ip + APPSEC_BAIDU));
             response = new HttpRequesterWithPool.HttpUriRequestBuilder(HOST_BAIDU + URI_BAIDU)
                     .addParam("ak", APPKEY_BAIDU)
                     .addParam("ip", ip)
                     .build()
-                    .doRequest();
+                    .doRequest().getEntity();
 		} catch (Exception e) {
 			result.setCode(ResultCode.FAILED);
 			result.setMessage("call service failed:[" + e.getMessage() + "]");

@@ -57,7 +57,7 @@ public class HttpRequesterWithoutPool implements AutoCloseable {
      * @return response content
      * @throws IOException @see CloseableHttpClient.execute(HttpUriRequest)
      */
-    public String doPost(Map<String, String> params) throws IOException {
+    public StringHttpResponse doPost(Map<String, String> params) throws IOException {
         return doPost(params, null, null);
     }
 
@@ -67,11 +67,12 @@ public class HttpRequesterWithoutPool implements AutoCloseable {
      * @return response content
      * @throws IOException @see CloseableHttpClient.execute(HttpUriRequest)
      */
-    public String doPost(Map<String, String> params, String fileParamName, String filePath) throws IOException {
+    public StringHttpResponse doPost(Map<String, String> params, String fileParamName, String filePath)
+            throws IOException {
         logger.debug("doRequest start, uri:[" + request.getURI() + "]");
         long st = System.currentTimeMillis();
 
-        String responseStr;
+        StringHttpResponse strResponse = new StringHttpResponse();
         CloseableHttpResponse response = null;
         InputStream in = null;
         try {
@@ -93,18 +94,14 @@ public class HttpRequesterWithoutPool implements AutoCloseable {
             request.setEntity(httpEntity);
 
             response = httpClient.execute(request);
-            int statusCode = response.getStatusLine().getStatusCode();
+            strResponse.setStatusCode(response.getStatusLine().getStatusCode());
             in = response.getEntity().getContent();
-            if (withGzip(response)) {
-                responseStr = EntityUtils.toString(
-                        new GzipDecompressingEntity(response.getEntity()), charset);
-            } else {
-                responseStr = EntityUtils.toString(response.getEntity(), charset);
-            }
-            if (HttpStatus.SC_OK != statusCode) {
-                responseStr = "{\"status\":" + statusCode + ",\"entity\":\"" + responseStr + "\"}";
-                logger.warn("doRequest, server status: {}, uri: [{}], entity : {}", statusCode, request.getURI(),
-                        (isHtml(responseStr) ? "a html" : responseStr));
+            HttpEntity entity = withGzip(response)
+                    ? new GzipDecompressingEntity(response.getEntity()) : response.getEntity();
+            strResponse.setEntity(EntityUtils.toString(entity, charset));
+            if (HttpStatus.SC_OK != strResponse.getStatusCode()) {
+                logger.warn("doRequest, server status: {}, uri: [{}], entity : {}", strResponse.getStatusCode(),
+                        request.getURI(), (isHtml(strResponse.getEntity()) ? "a html" : strResponse.getEntity()));
             }
         } catch (IOException e) {
             request.abort();
@@ -132,7 +129,7 @@ public class HttpRequesterWithoutPool implements AutoCloseable {
 
         long et = System.currentTimeMillis();
         logger.info("doRequest finished, uri:[" + request.getURI() + "], cost time:" + (et - st) + "ms.");
-        return responseStr;
+        return strResponse;
     }
 
     private boolean withGzip(CloseableHttpResponse response) {

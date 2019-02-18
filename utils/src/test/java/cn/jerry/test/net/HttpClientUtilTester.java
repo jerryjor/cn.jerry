@@ -7,11 +7,11 @@ public class HttpClientUtilTester {
 
     public static void main(String[] args) {
         testTaobaoPhoneNoService();
-        testTaobaoIpAddrService();
+        // testTaobaoIpAddrService();
     }
 
     private static void testTaobaoPhoneNoService() {
-        String phoneNo = "15687864645";
+        String phoneNo = "13778953200";
         System.out.println(PhoneNumRegionUtil.queryPhoneNumRegion(phoneNo));
     }
 

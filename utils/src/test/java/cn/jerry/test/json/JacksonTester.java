@@ -30,7 +30,7 @@ public class JacksonTester {
                     .addParams(dataBody)
                     .setSocketTimeout(3000)
                     .build()
-                    .doRequest();
+                    .doRequest().getEntity();
             System.out.println(response);
             Map<String, Object> jo = JsonUtil.toHashMap(response, String.class, Object.class);
             Map<String, Object> dataMap = (Map<String, Object>) jo.get("data");

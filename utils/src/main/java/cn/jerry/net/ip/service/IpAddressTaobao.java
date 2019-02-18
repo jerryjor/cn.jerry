@@ -37,7 +37,7 @@ public class IpAddressTaobao implements IIpAddressService {
             response = new HttpRequesterWithPool.HttpUriRequestBuilder(HOST_TAOBAO + URI_TAOBAO)
                     .addParam("ip", ip)
                     .build()
-                    .doRequest();
+                    .doRequest().getEntity();
 		} catch (Exception e) {
 			result.setCode(ResultCode.FAILED);
 			result.setMessage("call service failed:[" + e.getMessage() + "]");

@@ -40,7 +40,7 @@ public class PhoneNumTaobao implements IPhoneNumService {
                     .setCharset(Charset.forName("GBK"))
                     .setSocketTimeout(30000)
                     .build()
-                    .doRequest();
+                    .doRequest().getEntity();
 		} catch (Exception e) {
 			result.setCode(ResultCode.FAILED);
 			result.setMessage("call service failed:[" + e.getMessage() + "]");
