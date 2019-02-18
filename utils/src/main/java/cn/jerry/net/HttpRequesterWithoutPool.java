@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class HttpRequesterWithoutPool {
+public class HttpRequesterWithoutPool implements AutoCloseable {
     private static Logger logger = LogManager.getLogger();
 
     private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
@@ -76,7 +76,7 @@ public class HttpRequesterWithoutPool {
         InputStream in = null;
         try {
             request.setEntity(null);
-            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create().setCharset(charset);
             if (fileParamName != null && !fileParamName.isEmpty()
                     && filePath != null && !(filePath = filePath.trim()).isEmpty()) {
                 File file = new File(filePath);
@@ -154,6 +154,7 @@ public class HttpRequesterWithoutPool {
     /**
      * 关闭连接,释放资源
      */
+    @Override
     public void close() {
         if (httpClient == null) return;
 
@@ -170,7 +171,7 @@ public class HttpRequesterWithoutPool {
         private String url;
         private Map<String, String> headers = new HashMap<>();
         private Map<String, String> params = new HashMap<>();
-        private Charset charset;
+        private Charset charset = DEFAULT_CHARSET;
         private Integer socketTimeout;
         private Integer connTimeout;
         private Integer connReqTimeout;
@@ -201,7 +202,7 @@ public class HttpRequesterWithoutPool {
         }
 
         public HttpUriRequestBuilder setCharset(Charset charset) {
-            this.charset = charset == null ? DEFAULT_CHARSET : charset;
+            if (charset != null) this.charset = charset;
             return this;
         }
 

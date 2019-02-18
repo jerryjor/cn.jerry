@@ -120,7 +120,7 @@ public class HttpRequesterWithPool {
         private String url;
         private Map<String, String> headers = new HashMap<>();
         private Map<String, String> params = new HashMap<>();
-        private Charset charset;
+        private Charset charset = DEFAULT_CHARSET;
         private Integer socketTimeout;
         private Integer connTimeout;
         private Integer connReqTimeout;
@@ -171,7 +171,7 @@ public class HttpRequesterWithPool {
         }
 
         public HttpUriRequestBuilder setCharset(Charset charset) {
-            this.charset = charset == null ? DEFAULT_CHARSET : charset;
+            if (charset != null) this.charset = charset;
             return this;
         }
 
@@ -218,7 +218,7 @@ public class HttpRequesterWithPool {
             if (this.post) {
                 request = new HttpPost(url);
                 if (!this.params.isEmpty()) {
-                    MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+                    MultipartEntityBuilder builder = MultipartEntityBuilder.create().setCharset(charset);
                     for (Entry<String, String> param : this.params.entrySet()) {
                         builder.addTextBody(param.getKey(), param.getValue());
                     }
