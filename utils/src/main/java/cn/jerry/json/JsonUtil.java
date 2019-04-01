@@ -115,7 +115,7 @@ public class JsonUtil {
      * @return
      * @throws IOException
      */
-    public static <K, V> Map<K, V> toHashMap(String json, Class<K> classOfK, Class<V> classOfV) throws IOException {
+    public static <K, V> HashMap<K, V> toHashMap(String json, Class<K> classOfK, Class<V> classOfV) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
         return SIMPLE_MAPPER.readValue(json, constructHashMapType(classOfK, classOfV));
@@ -130,7 +130,7 @@ public class JsonUtil {
      * @return
      * @throws IOException
      */
-    public static <K, V> Map<K, V> toHashMap(String json, JavaType typeOfK, JavaType typeOfV) throws IOException {
+    public static <K, V> HashMap<K, V> toHashMap(String json, JavaType typeOfK, JavaType typeOfV) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
         return SIMPLE_MAPPER.readValue(json, constructHashMapType(typeOfK, typeOfV));
@@ -144,7 +144,7 @@ public class JsonUtil {
      * @return
      * @throws IOException
      */
-    public static <T> List<T> toArrayList(String json, Class<T> classOfE) throws IOException {
+    public static <E> ArrayList<E> toArrayList(String json, Class<E> classOfE) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
         return SIMPLE_MAPPER.readValue(json, constructArrayListType(classOfE));
@@ -158,7 +158,7 @@ public class JsonUtil {
      * @return
      * @throws IOException
      */
-    public static <T> List<T> toArrayList(String json, JavaType typeOfE) throws IOException {
+    public static <E> ArrayList<E> toArrayList(String json, JavaType typeOfE) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
         return SIMPLE_MAPPER.readValue(json, constructArrayListType(typeOfE));
@@ -172,7 +172,7 @@ public class JsonUtil {
      * @return
      * @throws IOException
      */
-    public static <T> Set<T> toHashSet(String json, Class<T> classOfE) throws IOException {
+    public static <E> HashSet<E> toHashSet(String json, Class<E> classOfE) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
         return SIMPLE_MAPPER.readValue(json, constructHashSetType(classOfE));
@@ -186,7 +186,7 @@ public class JsonUtil {
      * @return
      * @throws IOException
      */
-    public static <T> Set<T> toHashSet(String json, JavaType typeOfE) throws IOException {
+    public static <E> HashSet<E> toHashSet(String json, JavaType typeOfE) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
         return SIMPLE_MAPPER.readValue(json, constructHashSetType(typeOfE));
