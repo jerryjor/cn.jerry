@@ -1,19 +1,14 @@
 package cn.jerry.json;
 
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class JsonUtil {
     private static final ObjectMapper SIMPLE_MAPPER = createSimpleMapper(null);
@@ -100,18 +95,15 @@ public class JsonUtil {
     /**
      * json转对象，抛异常
      *
-     * @param json     json字符串
-     * @param classOfT 对象类
-     * @param classOfE 对象内部泛型类
+     * @param json    json字符串
+     * @param typeOfT 对象
      * @return
      * @throws IOException
      */
-    public static <T> T toObject(String json, Class<T> classOfT, Class<?>... classOfE)
-            throws IOException {
+    public static <T> T toObject(String json, JavaType typeOfT) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructParametricType(classOfT, classOfE);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+        return SIMPLE_MAPPER.readValue(json, typeOfT);
     }
 
     /**
@@ -126,28 +118,22 @@ public class JsonUtil {
     public static <K, V> Map<K, V> toHashMap(String json, Class<K> classOfK, Class<V> classOfV) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, classOfK, classOfV);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+        return SIMPLE_MAPPER.readValue(json, constructHashMapType(classOfK, classOfV));
     }
 
     /**
-     * json转Map，默认字符串Key，抛异常
+     * json转Map，抛异常
      *
-     * @param json      json字符串
-     * @param classOfK  键类
-     * @param classOfV  值类
-     * @param classOfVE 值的内部泛型类
+     * @param json    json字符串
+     * @param typeOfK 键类
+     * @param typeOfV 值类
      * @return
      * @throws IOException
      */
-    public static <K, V> Map<K, V> toHashMap(String json, Class<K> classOfK, Class<V> classOfV, Class<?>... classOfVE)
-            throws IOException {
+    public static <K, V> Map<K, V> toHashMap(String json, JavaType typeOfK, JavaType typeOfV) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
-        JavaType keyType = SIMPLE_MAPPER.getTypeFactory().constructType(classOfK);
-        JavaType valType = SIMPLE_MAPPER.getTypeFactory().constructParametricType(classOfV, classOfVE);
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, keyType, valType);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+        return SIMPLE_MAPPER.readValue(json, constructHashMapType(typeOfK, typeOfV));
     }
 
     /**
@@ -161,25 +147,21 @@ public class JsonUtil {
     public static <T> List<T> toArrayList(String json, Class<T> classOfE) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, classOfE);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+        return SIMPLE_MAPPER.readValue(json, constructArrayListType(classOfE));
     }
 
     /**
      * json转List，抛异常
      *
-     * @param json      json字符串
-     * @param classOfE  元素类
-     * @param classOfEE 元素的内部泛型类
+     * @param json    json字符串
+     * @param typeOfE 元素类
      * @return
      * @throws IOException
      */
-    public static <T> List<T> toArrayList(String json, Class<T> classOfE, Class<?>... classOfEE) throws IOException {
+    public static <T> List<T> toArrayList(String json, JavaType typeOfE) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
-        JavaType eleType = SIMPLE_MAPPER.getTypeFactory().constructParametricType(classOfE, classOfEE);
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, eleType);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+        return SIMPLE_MAPPER.readValue(json, constructArrayListType(typeOfE));
     }
 
     /**
@@ -193,117 +175,124 @@ public class JsonUtil {
     public static <T> Set<T> toHashSet(String json, Class<T> classOfE) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructCollectionType(HashSet.class, classOfE);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+        return SIMPLE_MAPPER.readValue(json, constructHashSetType(classOfE));
     }
 
     /**
      * json转HashSet，抛异常
      *
-     * @param json      json字符串
-     * @param classOfE  元素类
-     * @param classOfEE 元素的内部泛型类
+     * @param json    json字符串
+     * @param typeOfE 元素类
      * @return
      * @throws IOException
      */
-    public static <T> Set<T> toHashSet(String json, Class<T> classOfE, Class<?>... classOfEE) throws IOException {
+    public static <T> Set<T> toHashSet(String json, JavaType typeOfE) throws IOException {
         if (json == null || json.isEmpty()) return null;
 
-        JavaType eleType = SIMPLE_MAPPER.getTypeFactory().constructParametricType(classOfE, classOfEE);
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructCollectionType(HashSet.class, eleType);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+        return SIMPLE_MAPPER.readValue(json, constructHashSetType(typeOfE));
     }
 
     /**
-     * json转HashMap，内部元素填充为HashMap，抛异常
+     * 构建无内部范型的JavaType
      *
-     * @param json      json字符串
-     * @param classOfK  主map键类
-     * @param classOfK1 子map键类
-     * @param classOfV1 子map值类
+     * @param clazz 类
      * @return
      * @throws IOException
      */
-    public static <K, K1, V1> Map<K, Map<K1, V1>> toHashMapFillWithHashMap(String json, Class<K> classOfK,
-            Class<K1> classOfK1, Class<V1> classOfV1) throws IOException {
-        if (json == null || json.isEmpty()) return null;
-
-        JavaType keyType = SIMPLE_MAPPER.getTypeFactory().constructType(classOfK);
-        JavaType valType = SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, classOfK1, classOfV1);
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, keyType, valType);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+    public static JavaType constructSimpleType(Class<?> clazz) {
+        return SIMPLE_MAPPER.getTypeFactory().constructType(clazz);
     }
 
     /**
-     * json转HashMap，内部元素填充为ArrayList，抛异常
+     * 构建ArrayList的JavaType，用于自定义范型
      *
-     * @param json      json字符串
-     * @param classOfK  主map键类
-     * @param classOfE1 子List元素类
+     * @param eleClass element的类
      * @return
      * @throws IOException
      */
-    public static <K, E1> Map<K, List<E1>> toHashMapFillWithArrayList(String json, Class<K> classOfK,
-            Class<E1> classOfE1) throws IOException {
-        if (json == null || json.isEmpty()) return null;
-
-        JavaType keyType = SIMPLE_MAPPER.getTypeFactory().constructType(classOfK);
-        JavaType valType = SIMPLE_MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, classOfE1);
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, keyType, valType);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+    public static JavaType constructArrayListType(Class<?> eleClass) {
+        return SIMPLE_MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, eleClass);
     }
 
     /**
-     * json转HashMap，内部元素填充为HashSet，抛异常
+     * 构建ArrayList的JavaType，用于自定义范型
      *
-     * @param json      json字符串
-     * @param classOfK  主map键类
-     * @param classOfE1 子Set元素类
+     * @param eleType element的类
      * @return
      * @throws IOException
      */
-    public static <K, E1> Map<K, Set<E1>> toHashMapFillWithHashSet(String json, Class<K> classOfK,
-            Class<E1> classOfE1) throws IOException {
-        if (json == null || json.isEmpty()) return null;
-
-        JavaType keyType = SIMPLE_MAPPER.getTypeFactory().constructType(classOfK);
-        JavaType valType = SIMPLE_MAPPER.getTypeFactory().constructCollectionType(HashSet.class, classOfE1);
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, keyType, valType);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+    public static JavaType constructArrayListType(JavaType eleType) {
+        return SIMPLE_MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, eleType);
     }
 
     /**
-     * json转ArrayList，内部元素填充为HashMap，抛异常
+     * 构建ArrayList的JavaType，用于自定义范型
      *
-     * @param json      json字符串
-     * @param classOfK1 子map键类
-     * @param classOfV1 子map值类
+     * @param eleClass element的类
      * @return
      * @throws IOException
      */
-    public static <K1, V1> List<Map<K1, V1>> toArrayListFillWithHashMap(String json, Class<K1> classOfK1,
-            Class<V1> classOfV1) throws IOException {
-        if (json == null || json.isEmpty()) return null;
-        JavaType eleType = SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, classOfK1, classOfV1);
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, eleType);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+    public static JavaType constructHashSetType(Class<?> eleClass) {
+        return SIMPLE_MAPPER.getTypeFactory().constructCollectionType(HashSet.class, eleClass);
     }
 
     /**
-     * json转HashSet，内部元素填充为HashMap，抛异常
+     * 构建ArrayList的JavaType，用于自定义范型
      *
-     * @param json      json字符串
-     * @param classOfK1 子map键类
-     * @param classOfV1 子map值类
+     * @param eleType element的类
      * @return
      * @throws IOException
      */
-    public static <K1, V1> Set<Map<K1, V1>> toHashSetFillWithHashMap(String json, Class<K1> classOfK1,
-            Class<V1> classOfV1) throws IOException {
-        if (json == null || json.isEmpty()) return null;
-        JavaType eleType = SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, classOfK1, classOfV1);
-        JavaType javaType = SIMPLE_MAPPER.getTypeFactory().constructCollectionType(HashSet.class, eleType);
-        return SIMPLE_MAPPER.readValue(json, javaType);
+    public static JavaType constructHashSetType(JavaType eleType) {
+        return SIMPLE_MAPPER.getTypeFactory().constructCollectionType(HashSet.class, eleType);
+    }
+
+    /**
+     * 构建HashMap的JavaType，用于自定义范型
+     *
+     * @param keyClass   key的类
+     * @param valueClass value泛型
+     * @return
+     * @throws IOException
+     */
+    public static JavaType constructHashMapType(Class<?> keyClass, Class<?> valueClass) {
+        return SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, keyClass, valueClass);
+    }
+
+    /**
+     * 构建HashMap的JavaType，用于自定义范型
+     *
+     * @param keyType   key的类
+     * @param valueType value泛型
+     * @return
+     * @throws IOException
+     */
+    public static JavaType constructHashMapType(JavaType keyType, JavaType valueType) {
+        return SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, keyType, valueType);
+    }
+
+    /**
+     * 构建JavaType，用于自定义范型
+     *
+     * @param objClass       Object真实的类
+     * @param genericClasses Object内部泛型
+     * @return
+     * @throws IOException
+     */
+    public static JavaType constructParametricType(Class<?> objClass, Class<?>... genericClasses) {
+        return SIMPLE_MAPPER.getTypeFactory().constructParametricType(objClass, genericClasses);
+    }
+
+    /**
+     * 构建JavaType，用于自定义范型
+     *
+     * @param objClass     Object真实的类
+     * @param genericTypes Object内部泛型
+     * @return
+     * @throws IOException
+     */
+    public static JavaType constructParametricType(Class<?> objClass, JavaType... genericTypes) {
+        return SIMPLE_MAPPER.getTypeFactory().constructParametricType(objClass, genericTypes);
     }
 
     public static String formatJsonStr(String jsonStr, String indentStr) {
