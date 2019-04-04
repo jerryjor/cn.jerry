@@ -19,7 +19,7 @@ public class AESCrypter {
     private static final String RNG_NAME = "SHA1PRNG";
     private static final int KEY_LENGTH = 128;
     private static final String ENCODING = "UTF8";
-    private static final String KEY_DOMAIN = "@ulebc.io";
+    private static final String KEY_DOMAIN = "@jerry.cn";
 
     private static final Base64.Encoder ENCODER = Base64.getEncoder();
     private static final Base64.Decoder DECODER = Base64.getDecoder();
