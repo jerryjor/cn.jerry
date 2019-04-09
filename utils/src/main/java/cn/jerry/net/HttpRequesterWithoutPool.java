@@ -1,12 +1,10 @@
 package cn.jerry.net;
 
 import cn.jerry.logging.LogManager;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpStatus;
+import org.apache.http.*;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.GzipDecompressingEntity;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -14,6 +12,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.Logger;
 
@@ -22,7 +21,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -77,20 +78,29 @@ public class HttpRequesterWithoutPool implements AutoCloseable {
         InputStream in = null;
         try {
             request.setEntity(null);
-            MultipartEntityBuilder builder = MultipartEntityBuilder.create().setCharset(charset);
+            HttpEntity httpEntity;
             if (fileParamName != null && !fileParamName.isEmpty()
                     && filePath != null && !(filePath = filePath.trim()).isEmpty()) {
+                MultipartEntityBuilder builder = MultipartEntityBuilder.create().setCharset(charset);
                 File file = new File(filePath);
                 if (file.exists()) {
                     builder.addBinaryBody(fileParamName, file);
                 }
-            }
-            if (!params.isEmpty()) {
-                for (Entry<String, String> param : params.entrySet()) {
-                    builder.addTextBody(param.getKey(), param.getValue());
+                if (!params.isEmpty()) {
+                    for (Entry<String, String> param : params.entrySet()) {
+                        builder.addTextBody(param.getKey(), param.getValue());
+                    }
                 }
+                httpEntity = builder.build();
+            } else {
+                List<NameValuePair> paramsPair = new ArrayList<>();
+                if (!params.isEmpty()) {
+                    for (Entry<String, String> param : params.entrySet()) {
+                        paramsPair.add(new BasicNameValuePair(param.getKey(), param.getValue()));
+                    }
+                }
+                httpEntity = new UrlEncodedFormEntity(paramsPair, charset);
             }
-            HttpEntity httpEntity = builder.build();
             request.setEntity(httpEntity);
 
             response = httpClient.execute(request);

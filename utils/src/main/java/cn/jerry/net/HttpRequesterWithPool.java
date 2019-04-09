@@ -4,11 +4,15 @@ import cn.jerry.logging.LogManager;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.GzipDecompressingEntity;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.*;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.Logger;
 
@@ -18,7 +22,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -211,29 +217,19 @@ public class HttpRequesterWithPool {
 
         public HttpRequesterWithPool build() {
             HttpRequestBase request;
+            List<NameValuePair> paramsPair = new ArrayList<>();
+            for (Entry<String, String> param : this.params.entrySet()) {
+                paramsPair.add(new BasicNameValuePair(param.getKey(), param.getValue()));
+            }
             if (this.post) {
                 request = new HttpPost(url);
                 if (!this.params.isEmpty()) {
-                    MultipartEntityBuilder builder = MultipartEntityBuilder.create().setCharset(charset);
-                    for (Entry<String, String> param : this.params.entrySet()) {
-                        builder.addTextBody(param.getKey(), param.getValue());
-                    }
-                    HttpEntity httpEntity = builder.build();
+                    UrlEncodedFormEntity httpEntity = new UrlEncodedFormEntity(paramsPair, charset);
                     ((HttpPost) request).setEntity(httpEntity);
                 }
             } else {
                 if (!this.params.isEmpty()) {
-                    StringBuilder paramBuffer = new StringBuilder();
-                    for (Entry<String, String> param : this.params.entrySet()) {
-                        String value = null;
-                        try {
-                            value = URLEncoder.encode(param.getValue(), this.charset.name());
-                        } catch (UnsupportedEncodingException e) {
-                            logger.error("Unsupported encoding: " + this.charset.name());
-                        }
-                        paramBuffer.append("&").append(param.getKey()).append("=").append(value);
-                    }
-                    this.url += paramBuffer.replace(0, 1, "?").toString();
+                    this.url += "?" + URLEncodedUtils.format(paramsPair, charset);
                 }
                 request = new HttpGet(this.url);
             }
