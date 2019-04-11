@@ -2,9 +2,11 @@ package cn.jerry.net.ip.service;
 
 import cn.jerry.json.JsonUtil;
 import cn.jerry.model.ResultCode;
-import cn.jerry.net.HttpRequesterWithPool;
+import cn.jerry.net.HttpRequester;
+import cn.jerry.net.StringHttpResponse;
 import cn.jerry.net.ip.Address;
 import cn.jerry.net.ip.IpAddressResult;
+import org.apache.http.HttpStatus;
 
 import java.util.Map;
 
@@ -32,12 +34,18 @@ public class IpAddressTaobao implements IIpAddressService {
 			return result;
 		}
 
-		String response = null;
+		String response;
 		try {
-            response = new HttpRequesterWithPool.HttpUriRequestBuilder(HOST_TAOBAO + URI_TAOBAO)
+            StringHttpResponse resp = HttpRequester.newBuilder(HOST_TAOBAO + URI_TAOBAO)
                     .addParam("ip", ip)
                     .build()
-                    .doRequest().getEntity();
+                    .doPost();
+            if (HttpStatus.SC_OK != resp.getStatusCode()) {
+                result.setCode(ResultCode.FAILED);
+                result.setMessage("call service failed:[" + resp.getStatusCode() + "]");
+                return result;
+            }
+            response = resp.getEntity();
 		} catch (Exception e) {
 			result.setCode(ResultCode.FAILED);
 			result.setMessage("call service failed:[" + e.getMessage() + "]");

@@ -2,9 +2,11 @@ package cn.jerry.net.ip.service;
 
 import cn.jerry.json.JsonUtil;
 import cn.jerry.model.ResultCode;
-import cn.jerry.net.HttpRequesterWithPool;
+import cn.jerry.net.HttpRequester;
+import cn.jerry.net.StringHttpResponse;
 import cn.jerry.net.ip.Address;
 import cn.jerry.net.ip.IpAddressResult;
+import org.apache.http.HttpStatus;
 
 import java.util.Map;
 
@@ -37,11 +39,17 @@ public class IpAddressBaidu implements IIpAddressService {
 		String response = null;
 		try {
 			// params.put("sn", MD5Util.genMd5(URI + "?ak=" + APPKEY_BAIDU + "&ip=" + ip + APPSEC_BAIDU));
-            response = new HttpRequesterWithPool.HttpUriRequestBuilder(HOST_BAIDU + URI_BAIDU)
+            StringHttpResponse resp = HttpRequester.newBuilder(HOST_BAIDU + URI_BAIDU)
                     .addParam("ak", APPKEY_BAIDU)
                     .addParam("ip", ip)
                     .build()
-                    .doRequest().getEntity();
+                    .doPost();
+            if (HttpStatus.SC_OK != resp.getStatusCode()) {
+                result.setCode(ResultCode.FAILED);
+                result.setMessage("call service failed:[" + resp.getStatusCode() + "]");
+                return result;
+            }
+            response = resp.getEntity();
 		} catch (Exception e) {
 			result.setCode(ResultCode.FAILED);
 			result.setMessage("call service failed:[" + e.getMessage() + "]");

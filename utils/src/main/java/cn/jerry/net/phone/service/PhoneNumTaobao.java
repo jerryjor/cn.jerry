@@ -1,9 +1,11 @@
 package cn.jerry.net.phone.service;
 
 import cn.jerry.model.ResultCode;
-import cn.jerry.net.HttpRequesterWithPool;
+import cn.jerry.net.HttpRequester;
+import cn.jerry.net.StringHttpResponse;
 import cn.jerry.net.phone.PhoneNumRegion;
 import cn.jerry.net.phone.PhoneNumRegionResult;
+import org.apache.http.HttpStatus;
 
 import java.nio.charset.Charset;
 
@@ -33,14 +35,20 @@ public class PhoneNumTaobao implements IPhoneNumService {
 			return result;
 		}
 
-		String response = null;
+		String response;
 		try {
-			response = new HttpRequesterWithPool.HttpUriRequestBuilder(HOST_TAOBAO + URI_TAOBAO)
+            StringHttpResponse resp = HttpRequester.newBuilder(HOST_TAOBAO + URI_TAOBAO)
                     .addParam(PARAM_TAOBAO, phoneNum)
                     .setCharset(Charset.forName("GBK"))
                     .setSocketTimeout(30000)
                     .build()
-                    .doRequest().getEntity();
+                    .doPost();
+            if (HttpStatus.SC_OK != resp.getStatusCode()) {
+                result.setCode(ResultCode.FAILED);
+                result.setMessage("call service failed:[" + resp.getStatusCode() + "]");
+                return result;
+            }
+            response = resp.getEntity();
 		} catch (Exception e) {
 			result.setCode(ResultCode.FAILED);
 			result.setMessage("call service failed:[" + e.getMessage() + "]");
