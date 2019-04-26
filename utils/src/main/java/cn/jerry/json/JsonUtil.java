@@ -39,6 +39,8 @@ public class JsonUtil {
         mapper.disable(DeserializationFeature.FAIL_ON_NUMBERS_FOR_ENUMS);
         // 日期格式
         mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
+        // 时区
+        mapper.setTimeZone(TimeZone.getTimeZone("GMT+8"));
 
         return mapper;
     }
