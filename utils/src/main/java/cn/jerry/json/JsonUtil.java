@@ -25,18 +25,62 @@ public class JsonUtil {
             mapper.setSerializationInclusion(include);
         }
         //
-        mapper.disable(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS);
-        mapper.disable(SerializationFeature.FAIL_ON_SELF_REFERENCES);
-        mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+        try {
+            mapper.disable(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS);
+        } catch (NoSuchMethodError e) {
+            //
+        }
+        try {
+            mapper.disable(SerializationFeature.FAIL_ON_SELF_REFERENCES);
+        } catch (NoSuchMethodError e) {
+            //
+        }
+        try {
+            mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+        } catch (NoSuchMethodError e) {
+            //
+        }
         // 设置输入时忽略在JSON字符串中存在但Java对象实际没有的属性
-        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        mapper.disable(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES);
-        mapper.disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
-        mapper.disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE);
-        mapper.disable(DeserializationFeature.FAIL_ON_UNRESOLVED_OBJECT_IDS);
-        mapper.disable(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY);
-        mapper.disable(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES);
-        mapper.disable(DeserializationFeature.FAIL_ON_NUMBERS_FOR_ENUMS);
+        try {
+            mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        } catch (NoSuchMethodError e) {
+            //
+        }
+        try {
+            mapper.disable(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES);
+        } catch (NoSuchMethodError e) {
+            //
+        }
+        try {
+            mapper.disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
+        } catch (NoSuchMethodError e) {
+            //
+        }
+        try {
+            mapper.disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE);
+        } catch (NoSuchMethodError e) {
+            //
+        }
+        try {
+            mapper.disable(DeserializationFeature.FAIL_ON_UNRESOLVED_OBJECT_IDS);
+        } catch (NoSuchMethodError e) {
+            //
+        }
+        try {
+            mapper.disable(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY);
+        } catch (NoSuchMethodError e) {
+            //
+        }
+        try {
+            mapper.disable(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES);
+        } catch (NoSuchMethodError e) {
+            //
+        }
+        try {
+            mapper.disable(DeserializationFeature.FAIL_ON_NUMBERS_FOR_ENUMS);
+        } catch (NoSuchMethodError e) {
+            //
+        }
         // 日期格式
         mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
         // 时区
@@ -295,6 +339,16 @@ public class JsonUtil {
      */
     public static JavaType constructParametricType(Class<?> objClass, JavaType... genericTypes) {
         return SIMPLE_MAPPER.getTypeFactory().constructParametricType(objClass, genericTypes);
+    }
+
+    public static boolean isJson(Object obj) {
+        if (obj == null) return false;
+        if (!(obj instanceof String)) return false;
+        String json = (String) obj;
+        json = json.trim();
+        return !json.isEmpty()
+                && ((json.startsWith("{") && json.endsWith("}"))
+                || (json.startsWith("[") && json.endsWith("]")));
     }
 
     public static String formatJsonStr(String jsonStr, String indentStr) {

@@ -21,13 +21,21 @@ public class DateUtil {
     private static final String PATTERN_DATE_TIME = PATTERN_DATE + " " + PATTERN_TIME;
     private static final String PATTERN_DATE_TIME_MILLIS = PATTERN_DATE + " " + PATTERN_TIME_MILLIS;
     // 2018-11-13T00:00:00.000+0800
-    private static final String PATTERN_FULL = PATTERN_YEAR + "%s" + PATTERN_MONTH + "%s" + PATTERN_DAY + "'T'"
+    public static final String PATTERN_FULL_1 = PATTERN_YEAR + "-" + PATTERN_MONTH + "-" + PATTERN_DAY + "'T'"
             + PATTERN_HOUR + ":" + PATTERN_MINUTE + ":" + PATTERN_SECOND + "." + PATTERN_MILLIS + "Z";
+    // 2018-11-13T00:00:00.000+0800Z
+    public static final String PATTERN_FULL_2 = PATTERN_YEAR + "-" + PATTERN_MONTH + "-" + PATTERN_DAY + "'T'"
+            + PATTERN_HOUR + ":" + PATTERN_MINUTE + ":" + PATTERN_SECOND + "." + PATTERN_MILLIS + "Z'Z'";
 
-    public static final long MS_PER_DAY = 24 * 60 * 60 * 1000L;
+    public static final long MS_PER_SECOND = 1000L;
+    public static final long MS_PER_MINUTE = 60 * MS_PER_SECOND;
+    public static final long MS_PER_HOUR = 60 * MS_PER_MINUTE;
+    public static final long MS_PER_DAY = 24 * MS_PER_HOUR;
     public static final TimeZone DEFAULT_TIME_ZONE = Calendar.getInstance().getTimeZone();
 
-    private static final Map<String, SimpleDateFormat> FORMATTERS;
+    private static final Map<String, Integer> PATTERN_MAX_VALUE;
+    private static final Map<String, DateFormat> SIMPLE_FORMATTERS;
+    private static final Map<String, DateFormat> FULL_FORMATTERS;
 
     /**
      * 生成常用的日期格式
@@ -37,47 +45,90 @@ public class DateUtil {
      * @return
      */
     static {
-        FORMATTERS = new HashMap<>();
+        PATTERN_MAX_VALUE = new HashMap<String, Integer>();
+        PATTERN_MAX_VALUE.put(PATTERN_MONTH, 12);
+        PATTERN_MAX_VALUE.put(PATTERN_DAY, 31);
+        PATTERN_MAX_VALUE.put(PATTERN_HOUR, 23);
+        PATTERN_MAX_VALUE.put(PATTERN_MINUTE, 59);
+        PATTERN_MAX_VALUE.put(PATTERN_SECOND, 59);
+        PATTERN_MAX_VALUE.put(PATTERN_MILLIS, 999);
+
+        // 全日期
+        FULL_FORMATTERS = new HashMap<>();
+        FULL_FORMATTERS.put(PATTERN_FULL_1, new DateFormat(PATTERN_FULL_1));
+        FULL_FORMATTERS.put(PATTERN_FULL_2, new DateFormat(PATTERN_FULL_2));
+
+        SIMPLE_FORMATTERS = new HashMap<String, DateFormat>();
         String[] dateSplit = new String[]{"", "-", ".", "/"};
         String[] timeSplit = new String[]{"", ":"};
         String[] millisSplit = new String[]{"", ".", ":"};
         String pattern;
-        for (int i = 0; i < dateSplit.length; i++) {
+        for (String d : dateSplit) {
             // 日期
-            pattern = String.format(PATTERN_DATE, dateSplit[i], dateSplit[i]);
-            FORMATTERS.put(pattern, new SimpleDateFormat(pattern));
-            // 全日期
-            pattern = String.format(PATTERN_FULL, dateSplit[i], dateSplit[i]);
-            FORMATTERS.put(pattern, new SimpleDateFormat(pattern));
+            pattern = String.format(PATTERN_DATE, d, d);
+            SIMPLE_FORMATTERS.put(pattern, new DateFormat(pattern));
         }
-        for (int j = 0; j < timeSplit.length; j++) {
+        for (String t : timeSplit) {
             // 时间
-            pattern = String.format(PATTERN_TIME, timeSplit[j], timeSplit[j]);
-            FORMATTERS.put(pattern, new SimpleDateFormat(pattern));
-            for (int k = 0; k < millisSplit.length; k++) {
+            pattern = String.format(PATTERN_TIME, t, t);
+            SIMPLE_FORMATTERS.put(pattern, new DateFormat(pattern));
+            for (String value : millisSplit) {
                 // 时间，带毫秒
-                pattern = String.format(PATTERN_TIME_MILLIS, timeSplit[j], timeSplit[j], millisSplit[k]);
-                FORMATTERS.put(pattern, new SimpleDateFormat(pattern));
+                pattern = String.format(PATTERN_TIME_MILLIS, t, t, value);
+                SIMPLE_FORMATTERS.put(pattern, new DateFormat(pattern));
             }
         }
-        for (int i = 0; i < dateSplit.length; i++) {
-            for (int j = 0; j < timeSplit.length; j++) {
+        for (String d : dateSplit) {
+            for (String t : timeSplit) {
                 // 日期时间
-                pattern = String.format(PATTERN_DATETIME, dateSplit[i], dateSplit[i], timeSplit[j], timeSplit[j]);
-                FORMATTERS.put(pattern, new SimpleDateFormat(pattern));
+                pattern = String.format(PATTERN_DATETIME, d, d, t, t);
+                SIMPLE_FORMATTERS.put(pattern, new DateFormat(pattern));
                 // 日期空格时间
-                pattern = String.format(PATTERN_DATE_TIME, dateSplit[i], dateSplit[i], timeSplit[j], timeSplit[j]);
-                FORMATTERS.put(pattern, new SimpleDateFormat(pattern));
-                for (int k = 0; k < millisSplit.length; k++) {
+                pattern = String.format(PATTERN_DATE_TIME, d, d, t, t);
+                SIMPLE_FORMATTERS.put(pattern, new DateFormat(pattern));
+                for (String m : millisSplit) {
                     // 日期时间，带毫秒
-                    pattern = String.format(PATTERN_DATETIME_MILLIS, dateSplit[i], dateSplit[i], timeSplit[j], timeSplit[j], millisSplit[k]);
-                    FORMATTERS.put(pattern, new SimpleDateFormat(pattern));
+                    pattern = String.format(PATTERN_DATETIME_MILLIS, d, d, t, t, m);
+                    SIMPLE_FORMATTERS.put(pattern, new DateFormat(pattern));
                     // 日期空格时间，带毫秒
-                    pattern = String.format(PATTERN_DATE_TIME_MILLIS, dateSplit[i], dateSplit[i], timeSplit[j], timeSplit[j], millisSplit[k]);
-                    FORMATTERS.put(pattern, new SimpleDateFormat(pattern));
+                    pattern = String.format(PATTERN_DATE_TIME_MILLIS, d, d, t, t, m);
+                    SIMPLE_FORMATTERS.put(pattern, new DateFormat(pattern));
                 }
             }
         }
+    }
+
+    /**
+     * 计算日期
+     *
+     * @param date    基数日期
+     * @param seconds 秒数，正数为之后，负数为之前
+     * @return 结果日期
+     */
+    public static Date addSecond(Date date, int seconds) {
+        return new Date(date.getTime() + seconds * MS_PER_SECOND);
+    }
+
+    /**
+     * 计算日期
+     *
+     * @param date    基数日期
+     * @param minutes 分钟数，正数为之后，负数为之前
+     * @return 结果日期
+     */
+    public static Date addMinute(Date date, int minutes) {
+        return new Date(date.getTime() + minutes * MS_PER_MINUTE);
+    }
+
+    /**
+     * 计算日期
+     *
+     * @param date  基数日期
+     * @param hours 小时数，正数为之后，负数为之前
+     * @return 结果日期
+     */
+    public static Date addHour(Date date, int hours) {
+        return new Date(date.getTime() + hours * MS_PER_HOUR);
     }
 
     /**
@@ -94,8 +145,8 @@ public class DateUtil {
     /**
      * 计算日期是自1970-1-1以来地几天，以0开始
      *
-     * @param date
-     * @return
+     * @param date 日期
+     * @return 天数
      */
     public static long calcDaysFrom19700101(Date date) {
         return calcDaysFrom19700101(date, DEFAULT_TIME_ZONE);
@@ -104,9 +155,9 @@ public class DateUtil {
     /**
      * 计算日期是自1970-1-1以来地几天，以0开始
      *
-     * @param date
-     * @param tz
-     * @return
+     * @param date 日期
+     * @param tz 时区
+     * @return 天数
      */
     public static long calcDaysFrom19700101(Date date, TimeZone tz) {
         return (date.getTime() + tz.getRawOffset()) / MS_PER_DAY;
@@ -115,8 +166,8 @@ public class DateUtil {
     /**
      * 截取日期，去除时间
      *
-     * @param date
-     * @return
+     * @param date 日期
+     * @return 该日0点日期
      */
     public static Date truncToDay(Date date) {
         return truncToDay(date, DEFAULT_TIME_ZONE);
@@ -125,21 +176,43 @@ public class DateUtil {
     /**
      * 截取日期，去除时间
      *
-     * @param date
-     * @param tz
-     * @return
+     * @param date 日期
+     * @param tz 时区
+     * @return 该日0点日期
      */
     public static Date truncToDay(Date date, TimeZone tz) {
-        long days = (date.getTime() + tz.getRawOffset()) / MS_PER_DAY;
+        long days = calcDaysFrom19700101(date);
         return new Date(days * MS_PER_DAY - tz.getRawOffset());
+    }
+
+    /**
+     * 截取日期到次日前1毫秒
+     *
+     * @param date 日期
+     * @return 次日前1毫秒日期
+     */
+    public static Date truncToTomorrow(Date date) {
+        return truncToTomorrow(date, DEFAULT_TIME_ZONE);
+    }
+
+    /**
+     * 截取日期到次日前1毫秒
+     *
+     * @param date 日期
+     * @param tz 时区
+     * @return 次日前1毫秒日期
+     */
+    public static Date truncToTomorrow(Date date, TimeZone tz) {
+        long days = calcDaysFrom19700101(date) + 1;
+        return new Date(days * MS_PER_DAY - tz.getRawOffset() - 1);
     }
 
     /**
      * 使用指定的格式转换日期
      *
-     * @param text
-     * @param pattern
-     * @return
+     * @param text 日期文本
+     * @param pattern 日期格式
+     * @return 日期
      */
     public static Date parseDate(String text, String pattern) throws ParseException {
         return parseDate(text, pattern, false);
@@ -149,18 +222,21 @@ public class DateUtil {
      * 使用指定的格式转换日期
      * 如果转换失败，尝试使用auto
      *
-     * @param text
-     * @param pattern
-     * @param tryAutoIfFailed
-     * @return
+     * @param text 日期文本
+     * @param pattern 日期格式
+     * @param tryAutoIfFailed 如果失败了是否尝试自动识别
+     * @return 日期
      */
     public static Date parseDate(String text, String pattern, boolean tryAutoIfFailed) throws ParseException {
         if (text == null || text.isEmpty()) return null;
         text = text.trim();
 
-        SimpleDateFormat df = FORMATTERS.get(pattern);
+        DateFormat df = SIMPLE_FORMATTERS.get(pattern);
         if (df == null) {
-            df = new SimpleDateFormat(pattern);
+            df = FULL_FORMATTERS.get(pattern);
+            if (df == null) {
+                df = new DateFormat(pattern);
+            }
         }
 
         try {
@@ -177,75 +253,91 @@ public class DateUtil {
     /**
      * 尝试使用所有的格式转换日期
      *
-     * @param text
-     * @return
+     * @param text 日期文本
+     * @return 日期
      */
     public static Date parseDateAuto(String text) throws ParseException {
         if (text == null || text.isEmpty()) return null;
         text = text.trim();
-        String text2 = text.replace("T", "'T'");
 
-        // 默认格式失败时，尝试所有格式
-        for (Entry<String, SimpleDateFormat> formatter : FORMATTERS.entrySet()) {
-            // 校验字符串长度与格式长度一致性
-            if (formatter.getKey().length() != (text2.length() - (formatter.getKey().endsWith("Z") ? 4 : 0))) continue;
-            // 校验month
-            if (!valid(text2, formatter.getKey().indexOf(PATTERN_MONTH), 2, 12)) continue;
-            // 校验day
-            if (!valid(text2, formatter.getKey().indexOf(PATTERN_DAY), 2, 31)) continue;
-            // 校验hour
-            if (!valid(text2, formatter.getKey().indexOf(PATTERN_HOUR), 2, 23)) continue;
-            // 校验minute
-            if (!valid(text2, formatter.getKey().indexOf(PATTERN_MINUTE), 2, 59)) continue;
-            // 校验second
-            if (!valid(text2, formatter.getKey().indexOf(PATTERN_SECOND), 2, 59)) continue;
-
-            try {
-                return formatter.getValue().parse(text);
-            } catch (Exception e1) {
-                // do nothing
-            }
+        // 全日期格式
+        boolean containsT = text.contains("T");
+        if (containsT) {
+            return FULL_FORMATTERS.get(text.endsWith("Z") ? PATTERN_FULL_2 : PATTERN_FULL_1).parse(text);
         }
+
+        // 自定义日期格式
+        Date date = tryAllSimple(text);
         // 所有格式尝试失败，判断是否为毫秒数格式
-        if (text.matches("\\d+")) {
-            System.out.println(text);
+        if (date == null && text.matches("\\d+")) {
             try {
-                return new Date(Long.parseLong(text));
+                date = new Date(Long.parseLong(text));
             } catch (Exception e1) {
                 // do nothing
             }
         }
-        throw new ParseException("parse [" + text + "] to date failed.", 0);
+        if (date == null) {
+            throw new ParseException("parse [" + text + "] to date failed.", 0);
+        } else {
+            return date;
+        }
     }
 
-    private static boolean valid(String text, int start, int length, int maxVal) {
-        if (start < 0) return true;
-        try {
-            int val = Integer.parseInt(text.substring(start, start + length));
-            return val <= maxVal;
-        } catch (Exception e1) {
+    private static Date tryAllSimple(String text) {
+        for (Entry<String, DateFormat> formatter : SIMPLE_FORMATTERS.entrySet()) {
+            // 校验数据与格式定义是否匹配
+            if (valid(text, formatter.getKey())) {
+                // 尝试parse
+                try {
+                    return formatter.getValue().parse(text);
+                } catch (Exception e1) {
+                    // ignore
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean valid(String text, String formatter) {
+        if (text.length() != formatter.length()) {
             return false;
         }
+        for (Map.Entry<String, Integer> conf : PATTERN_MAX_VALUE.entrySet()) {
+            int start = formatter.indexOf(conf.getKey());
+            if (start >= 0) {
+                int length = conf.getKey().length();
+                int maxVal = conf.getValue();
+                try {
+                    int val = Integer.parseInt(text.substring(start, start + length));
+                    if (val > maxVal) {
+                        return false;
+                    }
+                } catch (Exception e1) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
      * 使用默认格式格式化日期
      *
-     * @param date
-     * @return
+     * @param date 日期
+     * @return 日期文本
      */
     public static String formatDate(Date date) {
-        return FORMATTERS.get("yyyy-MM-dd").format(date);
+        return SIMPLE_FORMATTERS.get("yyyy-MM-dd").format(date);
     }
 
     /**
      * 使用默认格式格式化日期+时间
      *
-     * @param date
-     * @return
+     * @param date 日期
+     * @return 日期文本
      */
     public static String formatDateTime(Date date) {
-        return FORMATTERS.get("yyyy-MM-dd HH:mm:ss").format(date);
+        return SIMPLE_FORMATTERS.get("yyyy-MM-dd HH:mm:ss").format(date);
     }
 
     /**
@@ -259,12 +351,34 @@ public class DateUtil {
         if (date == null) {
             return null;
         }
-        SimpleDateFormat df = FORMATTERS.get(pattern);
+        DateFormat df = SIMPLE_FORMATTERS.get(pattern);
         if (df == null) {
-            df = new SimpleDateFormat(pattern);
-            // FORMATTERS.put(patten, df);
+            df = FULL_FORMATTERS.get(pattern);
+            if (df == null) {
+                df = new DateFormat(pattern);
+            }
         }
 
         return df.format(date);
+    }
+
+    /**
+     * SimpleDateFormat 内部使用Calendar，不支持并发
+     * 故需要每次new出来再使用
+     */
+    static class DateFormat {
+        private String pattern;
+
+        DateFormat(String pattern) {
+            this.pattern = pattern;
+        }
+
+        String format(Date date) {
+            return new SimpleDateFormat(pattern).format(date);
+        }
+
+        Date parse(String text) throws ParseException {
+            return new SimpleDateFormat(pattern).parse(text);
+        }
     }
 }

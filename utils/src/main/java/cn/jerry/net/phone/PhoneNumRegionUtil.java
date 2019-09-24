@@ -12,7 +12,7 @@ public class PhoneNumRegionUtil {
 	private static List<IPhoneNumService> services;
 
 	static {
-		services = new ArrayList<IPhoneNumService>();
+		services = new ArrayList<>();
 		// 注册淘宝服务
 		services.add(new PhoneNumTaobao());
 	}

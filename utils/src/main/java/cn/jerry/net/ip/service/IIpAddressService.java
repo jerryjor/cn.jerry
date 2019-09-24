@@ -9,7 +9,7 @@ public interface IIpAddressService {
 	 * 
 	 * @return
 	 */
-	String mySericeName();
+	String myServiceName();
 
 	/**
 	 * 查询ip地址

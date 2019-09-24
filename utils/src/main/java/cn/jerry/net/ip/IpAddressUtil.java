@@ -12,7 +12,7 @@ public class IpAddressUtil {
 	private static List<IIpAddressService> services;
 
 	static {
-		services = new ArrayList<IIpAddressService>();
+		services = new ArrayList<>();
 		// 注册淘宝服务
 		services.add(new IpAddressTaobao());
 		services.add(new IpAddressBaidu());
@@ -29,7 +29,7 @@ public class IpAddressUtil {
 		for (IIpAddressService service : services) {
 			try {
 				result = service.queryAddressByIp(ip);
-				System.out.println(service.mySericeName() + ":" + result);
+				System.out.println(service.myServiceName() + ":" + result);
 				if (result != null && ResultCode.SUCCEED == result.getCode()) {
 					return result;
 				}

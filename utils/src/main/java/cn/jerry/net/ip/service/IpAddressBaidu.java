@@ -16,7 +16,7 @@ public class IpAddressBaidu implements IIpAddressService {
 	private static final String APPKEY_BAIDU = "cTjGnacaWKhyRWPddoxeU3xymLVGFvYa";
 	// private static final String APPSEC_BAIDU = "de3FSgmEU23WElAk7QGeVkzO1wGRe30e";
 
-	public String mySericeName() {
+	public String myServiceName() {
 		return "baidu";
 	}
 

@@ -21,17 +21,16 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-class HttpConnectionManager {
+public class HttpClientFactory {
     private static Logger logger = LogManager.getLogger();
 
-	private static final int MAX_TOTAL = 32;
-	private static final int MAX_PER_ROUTE = 8;
+	private static final int MAX_TOTAL = 50;
+	private static final int MAX_PER_ROUTE = 30;
 
-	private static PoolingHttpClientConnectionManager cm;
-    private static ScheduledExecutorService connReleaseTask = Executors.newSingleThreadScheduledExecutor();
+	private static final PoolingHttpClientConnectionManager CONN_MGR;
+	private static final CloseableHttpClient DEFAULT_CLIENT;
 
 	static {
 		Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder
@@ -39,15 +38,19 @@ class HttpConnectionManager {
 		        .register("https", buildSslFactory())
 		        .register("http", new PlainConnectionSocketFactory())
 		        .build();
-		cm = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
-		cm.setMaxTotal(MAX_TOTAL);
+        CONN_MGR = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+        CONN_MGR.setMaxTotal(MAX_TOTAL);
 		// 每个路由最大连接数，默认是1
-		cm.setDefaultMaxPerRoute(MAX_PER_ROUTE);
+        CONN_MGR.setDefaultMaxPerRoute(MAX_PER_ROUTE);
 		// 可以针对特定的路由配置单独的限制
-		// cm.setMaxPerRoute(new HttpRoute(new HttpHost("jerry.cn")) , MAX_PER_ROUTE);
+		// cm.setMaxPerRoute(new HttpRoute(new HttpHost("jerry.cn")) , MAX_PER_ROUTE)
 		logger.info("init connection manager finished.");
+        DEFAULT_CLIENT = HttpClients.custom()
+                .setRetryHandler(new DefaultHttpRequestRetryHandler(0, false))
+                .setConnectionManager(CONN_MGR)
+                .build();
 
-        connReleaseTask.scheduleAtFixedRate(new ConnectionReleaseThread(), 1L, 5 * 60L,
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new ConnectionReleaseThread(), 1L, 1L,
                 TimeUnit.SECONDS);
 	}
 
@@ -59,9 +62,9 @@ class HttpConnectionManager {
 	private static SSLConnectionSocketFactory buildSslFactory() {
 		SSLConnectionSocketFactory factory = null;
 		try {
-			SSLContext context = SSLContext.getInstance("SSL");
-			context.init(null, new TrustManager[] { new TrustAnyManager() }, new SecureRandom());
-			factory = new SSLConnectionSocketFactory(context, new HostnamePassAnyVerifier());
+			SSLContext context = SSLContext.getInstance("TLSv1.2");
+			context.init(null, new TrustManager[] { new BlankCertManager() }, new SecureRandom());
+			factory = new SSLConnectionSocketFactory(context, new BlankHostVerifier());
 		} catch (NoSuchAlgorithmException e) {
 			logger.error("create SSLContext failed.", e);
 		} catch (KeyManagementException e) {
@@ -74,8 +77,7 @@ class HttpConnectionManager {
 	 * 定时释放长时间不活动的连接
 	 */
 	private static void releaseExpiredConn() {
-		logger.info("release expired connection...");
-		cm.closeExpiredConnections();
+        CONN_MGR.closeExpiredConnections();
 	}
 
 	/**
@@ -83,16 +85,18 @@ class HttpConnectionManager {
 	 * 
 	 * @return CloseableHttpClient
 	 */
-	static CloseableHttpClient getHttpClient(String host, Integer port, boolean pooled) {
-		logger.info("getHttpClient...........");
+	public static CloseableHttpClient getHttpClient(String host, Integer port, boolean pooled) {
+		if (port == null && pooled) {
+		    return DEFAULT_CLIENT;
+        }
 
         HttpClientBuilder builder = HttpClients.custom()
                 .setRetryHandler(new DefaultHttpRequestRetryHandler(0, false));
-        if (host != null && !host.trim().isEmpty() & port != null) {
+        if (host != null && !host.trim().isEmpty() && port != null) {
             builder.setRoutePlanner(new DefaultProxyRoutePlanner(new HttpHost(host, port)));
         }
         if (pooled) {
-            builder.setConnectionManager(cm);
+            builder.setConnectionManager(CONN_MGR);
         }
 		return builder.build();
 	}

@@ -6,12 +6,12 @@ import cn.jerry.net.phone.PhoneNumRegionUtil;
 public class HttpClientUtilTester {
 
     public static void main(String[] args) {
-        testTaobaoPhoneNoService();
-        // testTaobaoIpAddrService();
+        //testTaobaoPhoneNoService();
+        testTaobaoIpAddrService();
     }
 
     private static void testTaobaoPhoneNoService() {
-        String phoneNo = "13778953200";
+        String phoneNo = "13788953200";
         System.out.println(PhoneNumRegionUtil.queryPhoneNumRegion(phoneNo));
     }
 

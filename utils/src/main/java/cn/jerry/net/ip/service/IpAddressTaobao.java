@@ -14,7 +14,7 @@ public class IpAddressTaobao implements IIpAddressService {
 	private static final String HOST_TAOBAO = "http://ip.taobao.com";
 	private static final String URI_TAOBAO = "/service/getIpInfo.php";
 
-	public String mySericeName() {
+	public String myServiceName() {
 		return "taobao";
 	}
 

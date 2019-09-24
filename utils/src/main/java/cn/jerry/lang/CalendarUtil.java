@@ -2,12 +2,13 @@ package cn.jerry.lang;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 public class CalendarUtil {
 
     /**
      * 获取Calendar实例
-     * 
+     *
      * @return
      */
     public static Calendar getCalendar() {
@@ -16,12 +17,36 @@ public class CalendarUtil {
 
     /**
      * 获取Calendar实例
-     * 
+     *
+     * @param zone
+     * @return
+     */
+    public static Calendar getCalendar(TimeZone zone) {
+        Calendar c = Calendar.getInstance(zone);
+        return c;
+    }
+
+    /**
+     * 获取Calendar实例
+     *
      * @param date
      * @return
      */
     public static Calendar getCalendar(Date date) {
-        Calendar c = getCalendar();
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        return c;
+    }
+
+    /**
+     * 获取Calendar实例
+     *
+     * @param date
+     * @param zone
+     * @return
+     */
+    public static Calendar getCalendar(Date date, TimeZone zone) {
+        Calendar c = Calendar.getInstance(zone);
         c.setTime(date);
         return c;
     }

@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +35,7 @@ import java.util.Map.Entry;
 public class HttpRequester {
     private static Logger logger = LogManager.getLogger();
 
-    private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
+    private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
     private final RequestProperties properties;
     private final String proxyHost;
@@ -83,6 +84,21 @@ public class HttpRequester {
     }
 
     /**
+     * 执行post请求，使用提供的新参数，忽略builder时提供的参数，强制使用jsonBody方式传输，但header及cookie等仍沿用builder时的配置
+     *
+     * @param body 新参数
+     * @return 服务器返回结果
+     * @throws IOException 请求异常
+     */
+    public StringHttpResponse doJsonBodyPost(Object body) throws IOException {
+        HttpPost request = this.properties.createPost();
+        request.addHeader("Content-type", "application/json");
+        HttpEntity httpEntity = createJsonEntity(body, this.properties.charset);
+        request.setEntity(httpEntity);
+        return doRequest(request);
+    }
+
+    /**
      * 执行文件上传请求，忽略builder时提供的参数，但header及cookie等仍沿用builder时的配置
      *
      * @param params        新参数
@@ -106,14 +122,13 @@ public class HttpRequester {
      * @throws IOException @see CloseableHttpClient.execute(HttpUriRequest)
      */
     private StringHttpResponse doRequest(HttpRequestBase request) throws IOException {
-        logger.debug("doRequest start, uri:[" + request.getURI() + "]");
         long st = System.currentTimeMillis();
 
         StringHttpResponse strResponse = new StringHttpResponse();
         CloseableHttpClient httpClient = null;
         CloseableHttpResponse response = null;
         try {
-            httpClient = HttpConnectionManager.getHttpClient(this.proxyHost, this.proxyPort, this.properties.pooled);
+            httpClient = HttpClientFactory.getHttpClient(this.proxyHost, this.proxyPort, this.properties.pooled);
             response = httpClient.execute(request);
             strResponse.setStatusCode(response.getStatusLine().getStatusCode());
             HttpEntity entity = withGzip(response)
@@ -129,13 +144,14 @@ public class HttpRequester {
             logger.error("doRequest failed, uri:[" + request.getURI() + "]", e);
             throw e;
         } finally {
-            if (response != null) {
-                try {
-                    response.close();
-                } catch (IOException ioe) {
-                    logger.error("doRequest, close response failed.", ioe);
-                }
-            }
+            // 如果使用了 EntityUtils.toString，那么可以省略response.close
+//            if (response != null) {
+//                try {
+//                    response.close();
+//                } catch (IOException ioe) {
+//                    logger.error("doRequest, close response failed.", ioe);
+//                }
+//            }
             if (!this.properties.pooled && httpClient != null) {
                 // 关闭内置连接池
                 try {
@@ -147,7 +163,7 @@ public class HttpRequester {
         }
 
         long et = System.currentTimeMillis();
-        logger.info("doRequest finished, uri:[" + request.getURI() + "], cost time:" + (et - st) + "ms.");
+        logger.debug("doRequest finished, uri:[" + request.getURI() + "], cost time:" + (et - st) + "ms.");
         return strResponse;
     }
 
@@ -172,7 +188,7 @@ public class HttpRequester {
     }
 
     private static List<NameValuePair> createNameValuePairs(Map<String, String> params) {
-        List<NameValuePair> paramsPair = new ArrayList<>();
+        List<NameValuePair> paramsPair = new ArrayList<NameValuePair>();
         if (params == null || params.isEmpty()) return paramsPair;
         for (Entry<String, String> param : params.entrySet()) {
             paramsPair.add(new BasicNameValuePair(param.getKey(), param.getValue()));
@@ -180,8 +196,9 @@ public class HttpRequester {
         return paramsPair;
     }
 
-    private static HttpEntity createJsonEntity(Map<String, String> params, Charset charset) throws IOException {
-        return new StringEntity(JsonUtil.toJson(params), charset);
+    private static HttpEntity createJsonEntity(Object body, Charset charset) throws IOException {
+        String json = JsonUtil.isJson(body) ? (String) body : JsonUtil.toJson(body);
+        return new StringEntity(json, charset);
     }
 
     private static HttpEntity createSimpleEntity(Map<String, String> params, Charset charset) {
@@ -220,6 +237,11 @@ public class HttpRequester {
             return this;
         }
 
+        public Builder withoutGzip() {
+            this.properties.withGzip = false;
+            return this;
+        }
+
         public Builder addHeaders(Map<String, String> headers) {
             if (headers != null) {
                 this.properties.headers.putAll(headers);
@@ -248,8 +270,20 @@ public class HttpRequester {
             return this;
         }
 
+        public Builder addCookie(String name, String value) {
+            if (name != null && value != null) {
+                this.properties.cookies.put(name, value);
+            }
+            return this;
+        }
+
         public Builder setCharset(Charset charset) {
             if (charset != null) this.properties.charset = charset;
+            return this;
+        }
+
+        public Builder useJsonBody() {
+            this.properties.jsonBody = true;
             return this;
         }
 
@@ -268,11 +302,6 @@ public class HttpRequester {
             return this;
         }
 
-        public Builder withoutGzip() {
-            this.properties.withGzip = false;
-            return this;
-        }
-
         public Builder setProxyHost(String proxyHost) {
             this.proxyHost = proxyHost;
             return this;
@@ -280,13 +309,6 @@ public class HttpRequester {
 
         public Builder setProxyPort(Integer proxyPort) {
             this.proxyPort = proxyPort;
-            return this;
-        }
-
-        public Builder addCookie(String name, String value) {
-            if (name != null && value != null) {
-                this.properties.cookies.put(name, value);
-            }
             return this;
         }
 
@@ -298,9 +320,9 @@ public class HttpRequester {
 
     private static class RequestProperties {
         private String url;
-        private Map<String, String> headers = new HashMap<>();
-        private Map<String, String> params = new HashMap<>();
-        private Map<String, String> cookies = new HashMap<>();
+        private Map<String, String> headers = new HashMap<String, String>();
+        private Map<String, String> params = new HashMap<String, String>();
+        private Map<String, String> cookies = new HashMap<String, String>();
         // 默认使用UTF-8编码
         private Charset charset = DEFAULT_CHARSET;
         // 使用jsonbody方式
