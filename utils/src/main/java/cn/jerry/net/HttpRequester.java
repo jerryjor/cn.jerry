@@ -162,8 +162,10 @@ public class HttpRequester {
             }
         }
 
-        long et = System.currentTimeMillis();
-        logger.debug("doRequest finished, uri:[" + request.getURI() + "], cost time:" + (et - st) + "ms.");
+        long cost = System.currentTimeMillis() - st;
+        if (cost > 1000L) {
+            logger.info("Requesting [" + request.getURI() + "] cost " + cost + " ms.");
+        }
         return strResponse;
     }
 
