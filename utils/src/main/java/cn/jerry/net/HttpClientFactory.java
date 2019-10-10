@@ -29,15 +29,23 @@ public class HttpClientFactory {
 	private static final int MAX_TOTAL = 50;
 	private static final int MAX_PER_ROUTE = 30;
 
+    private static final String[] SSL_CONTEXTS = new String[]{"TLSv1.3", "TLSv1.2", "TLSv1.1"};
 	private static final PoolingHttpClientConnectionManager CONN_MGR;
 	private static final CloseableHttpClient DEFAULT_CLIENT;
 
 	static {
-		Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder
-		        .<ConnectionSocketFactory> create()
-		        .register("https", buildSslFactory())
-		        .register("http", new PlainConnectionSocketFactory())
-		        .build();
+        RegistryBuilder<ConnectionSocketFactory> register = RegistryBuilder
+                .<ConnectionSocketFactory>create()
+                .register("http", new PlainConnectionSocketFactory());
+        for (String contextName : SSL_CONTEXTS) {
+            SSLConnectionSocketFactory sslFactory = buildSslFactory(contextName);
+            if (sslFactory != null) {
+                register.register("https", sslFactory);
+                logger.info("sslFactory {} is registered.", contextName);
+                break;
+            }
+        }
+        Registry<ConnectionSocketFactory> socketFactoryRegistry = register.build();
         CONN_MGR = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
         CONN_MGR.setMaxTotal(MAX_TOTAL);
 		// 每个路由最大连接数，默认是1
@@ -59,10 +67,10 @@ public class HttpClientFactory {
 	 *
 	 * @return SSLConnectionSocketFactory
 	 */
-	private static SSLConnectionSocketFactory buildSslFactory() {
-		SSLConnectionSocketFactory factory = null;
-		try {
-			SSLContext context = SSLContext.getInstance("TLSv1.2");
+    private static SSLConnectionSocketFactory buildSslFactory(String contextName) {
+        SSLConnectionSocketFactory factory = null;
+        try {
+            SSLContext context = SSLContext.getInstance(contextName);
 			context.init(null, new TrustManager[] { new BlankCertManager() }, new SecureRandom());
 			factory = new SSLConnectionSocketFactory(context, new BlankHostVerifier());
 		} catch (NoSuchAlgorithmException e) {
