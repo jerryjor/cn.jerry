@@ -97,8 +97,7 @@ public class JsonUtil {
      * @return
      * @throws IOException
      */
-    public static <S, C extends S> S transChildToSuper(C child, Class<S> superClass)
-            throws IOException {
+    public static <S, C extends S> S transChildToSuper(C child, Class<S> superClass) throws IOException {
         return toObject(toJson(child), superClass);
     }
 
@@ -243,7 +242,6 @@ public class JsonUtil {
      *
      * @param clazz 类
      * @return
-     * @throws IOException
      */
     public static JavaType constructSimpleType(Class<?> clazz) {
         return SIMPLE_MAPPER.getTypeFactory().constructType(clazz);
@@ -254,7 +252,6 @@ public class JsonUtil {
      *
      * @param eleClass element的类
      * @return
-     * @throws IOException
      */
     public static JavaType constructArrayListType(Class<?> eleClass) {
         return SIMPLE_MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, eleClass);
@@ -265,7 +262,6 @@ public class JsonUtil {
      *
      * @param eleType element的类
      * @return
-     * @throws IOException
      */
     public static JavaType constructArrayListType(JavaType eleType) {
         return SIMPLE_MAPPER.getTypeFactory().constructCollectionType(ArrayList.class, eleType);
@@ -276,7 +272,6 @@ public class JsonUtil {
      *
      * @param eleClass element的类
      * @return
-     * @throws IOException
      */
     public static JavaType constructHashSetType(Class<?> eleClass) {
         return SIMPLE_MAPPER.getTypeFactory().constructCollectionType(HashSet.class, eleClass);
@@ -287,7 +282,6 @@ public class JsonUtil {
      *
      * @param eleType element的类
      * @return
-     * @throws IOException
      */
     public static JavaType constructHashSetType(JavaType eleType) {
         return SIMPLE_MAPPER.getTypeFactory().constructCollectionType(HashSet.class, eleType);
@@ -299,7 +293,6 @@ public class JsonUtil {
      * @param keyClass   key的类
      * @param valueClass value泛型
      * @return
-     * @throws IOException
      */
     public static JavaType constructHashMapType(Class<?> keyClass, Class<?> valueClass) {
         return SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, keyClass, valueClass);
@@ -311,7 +304,6 @@ public class JsonUtil {
      * @param keyType   key的类
      * @param valueType value泛型
      * @return
-     * @throws IOException
      */
     public static JavaType constructHashMapType(JavaType keyType, JavaType valueType) {
         return SIMPLE_MAPPER.getTypeFactory().constructMapType(HashMap.class, keyType, valueType);
@@ -323,7 +315,6 @@ public class JsonUtil {
      * @param objClass       Object真实的类
      * @param genericClasses Object内部泛型
      * @return
-     * @throws IOException
      */
     public static JavaType constructParametricType(Class<?> objClass, Class<?>... genericClasses) {
         return SIMPLE_MAPPER.getTypeFactory().constructParametricType(objClass, genericClasses);
@@ -335,7 +326,6 @@ public class JsonUtil {
      * @param objClass     Object真实的类
      * @param genericTypes Object内部泛型
      * @return
-     * @throws IOException
      */
     public static JavaType constructParametricType(Class<?> objClass, JavaType... genericTypes) {
         return SIMPLE_MAPPER.getTypeFactory().constructParametricType(objClass, genericTypes);
@@ -348,7 +338,8 @@ public class JsonUtil {
         json = json.trim();
         return !json.isEmpty()
                 && ((json.startsWith("{") && json.endsWith("}"))
-                || (json.startsWith("[") && json.endsWith("]")));
+                || (json.startsWith("[") && json.endsWith("]"))
+                || (json.startsWith("\"") && json.endsWith("\"")));
     }
 
     public static String formatJsonStr(String jsonStr, String indentStr) {
