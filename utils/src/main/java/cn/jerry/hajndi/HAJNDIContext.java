@@ -11,7 +11,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
-import cn.jerry.logging.LogManager;
+import cn.jerry.log4j2.annotation.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class HAJNDIContext {

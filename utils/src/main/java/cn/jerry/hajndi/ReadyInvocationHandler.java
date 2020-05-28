@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 
 import org.apache.commons.lang.ArrayUtils;
 
-import cn.jerry.logging.LogManager;
+import cn.jerry.log4j2.annotation.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ReadyInvocationHandler implements InvocationHandler {

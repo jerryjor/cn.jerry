@@ -97,6 +97,11 @@
 
 		<!-- Logging -->
         <dependency>
+            <groupId>cn.jerry</groupId>
+            <artifactId>log4j2-annotation</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>2.11.1</version>

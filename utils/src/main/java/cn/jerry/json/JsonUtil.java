@@ -1,6 +1,6 @@
 package cn.jerry.json;
 
-import cn.jerry.logging.LogManager;
+import cn.jerry.log4j2.annotation.LogManager;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
@@ -585,7 +585,7 @@ public class JsonUtil {
      * @return JavaType
      */
     public static JavaType constructParametricType(Class<?> objClass, Class<?>... genericClasses) {
-        return SIMPLE_MAPPER.getTypeFactory().constructParametrizedType(objClass, objClass, genericClasses);
+        return SIMPLE_MAPPER.getTypeFactory().constructParametricType(objClass, genericClasses);
     }
 
     /**
@@ -596,7 +596,7 @@ public class JsonUtil {
      * @return JavaType
      */
     public static JavaType constructParametricType(Class<?> objClass, JavaType... genericTypes) {
-        return SIMPLE_MAPPER.getTypeFactory().constructParametrizedType(objClass, objClass, genericTypes);
+        return SIMPLE_MAPPER.getTypeFactory().constructParametricType(objClass, genericTypes);
     }
 
     /**

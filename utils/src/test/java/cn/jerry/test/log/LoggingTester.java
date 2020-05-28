@@ -1,6 +1,6 @@
 package cn.jerry.test.log;
 
-import cn.jerry.logging.LogManager;
+import cn.jerry.log4j2.annotation.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class LoggingTester {
