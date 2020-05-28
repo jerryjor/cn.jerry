@@ -387,23 +387,28 @@ public class Resolver {
      * @param fqName the fully qualified name of a class
      */
     protected void addIfMatching(final String fqName) {
+        if (fqName == null) {
+            return;
+        }
+        int index = fqName.lastIndexOf('.');
+        if (index == -1 || !".class".equals(fqName.substring(index))) {
+            return;
+        }
+        String externalName = fqName.substring(0, index).replace('/', '.');
+        while (externalName.indexOf('.') == 0) {
+            externalName = externalName.substring(1);
+        }
         try {
-            final ClassLoader loader = getClassLoader();
-            String externalName = fqName.substring(0, fqName.indexOf('.')).replace('/', '.');
-            while (externalName.indexOf('.') == 0) {
-                externalName = externalName.substring(1);
-            }
             if (!this.matchTester.matchesPkg(externalName)) {
                 return;
             }
-
+            final ClassLoader loader = getClassLoader();
             final Class<?> type = loader.loadClass(externalName);
             if (this.matchTester.matchesAnnotation(type)) {
                 classMatches.add(type);
             }
-        } catch (Exception | java.lang.NoClassDefFoundError t) {
-            ConsoleLogger.error(this.getClass(), "Could not examine class: " + fqName
-                    + ", error4: " + t.getMessage());
+        } catch (Exception | java.lang.NoClassDefFoundError | java.lang.IllegalAccessError | java.lang.ClassFormatError e) {
+            // do nothing...
         }
     }
 
