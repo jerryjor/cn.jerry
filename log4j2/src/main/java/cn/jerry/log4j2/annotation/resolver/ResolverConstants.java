@@ -1,8 +1,10 @@
 package cn.jerry.log4j2.annotation.resolver;
 
+import cn.jerry.log4j2.annotation.ConsoleLogger;
 import cn.jerry.log4j2.annotation.definition.DailyLoggerDefinition;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Log4j ResolverConstants.
@@ -23,7 +25,7 @@ public final class ResolverConstants {
     /**
      * Equivalent to StandardCharsets.UTF_8.
      */
-    public static final Charset UTF_8 = Charset.forName("UTF-8");
+    public static final Charset UTF_8 = StandardCharsets.UTF_8;
 
     /**
      * Default size of ByteBuffers used to encode LogEvents without allocating temporary objects.
@@ -41,10 +43,9 @@ public final class ResolverConstants {
     }
 
 	private static String contactLoggerNotFoundMsg() {
-		final StringBuilder sb = new StringBuilder("NO daily rolling logger definition found.");
-		sb.append("\n\tPlease add your definition class in project.");
-		sb.append("\n\tThe class must has definition [").append(DailyLoggerDefinition.class.getName()).append("].");
-		return sb.toString();
+        return "NO daily rolling logger definition found."
+                + "\n\tPlease add your definition class in project."
+                + "\n\tThe class must has definition [" + DailyLoggerDefinition.class.getName() + "].";
 	}
 
     /**
@@ -54,8 +55,9 @@ public final class ResolverConstants {
     public static String getLineSeparator() {
         String ls = null;
         try {
-            ls = System.getProperties().getProperty(ResolverConstants.LINE_SEPARATOR_KEY);
+            ls = System.getProperties().getProperty(LINE_SEPARATOR_KEY);
         } catch (final SecurityException ex) {
+            ConsoleLogger.error(ResolverConstants.class, "Failed to get system property: " + LINE_SEPARATOR_KEY);
         }
         return ls == null ? "\n" : ls;
     }

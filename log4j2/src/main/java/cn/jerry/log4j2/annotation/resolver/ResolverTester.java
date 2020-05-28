@@ -18,7 +18,7 @@ public abstract class ResolverTester {
     public boolean matchesPkg(String className) {
         if (className == null) return false;
         if (getBasePackages() == null || getBasePackages().length == 0) return true;
-        int end = className.lastIndexOf(".");
+        int end = className.lastIndexOf('.');
         if (end <= 0) return false;
         for (String pkg : getBasePackages()) {
             if (pkg != null && className.substring(0, end).startsWith(pkg)) {
@@ -30,9 +30,9 @@ public abstract class ResolverTester {
 
     @Override
     public String toString() {
-        return new StringBuilder(this.getClass().getName()).append("{")
-                .append("annotation:").append(getAnnotationClass().getName()).append(",")
-                .append("basePackage:").append(Arrays.toString(getBasePackages()))
-                .append("}").toString();
+        return this.getClass().getName() + "{" +
+                "annotation:" + getAnnotationClass().getName() + "," +
+                "basePackage:" + Arrays.toString(getBasePackages()) +
+                "}";
     }
 }
