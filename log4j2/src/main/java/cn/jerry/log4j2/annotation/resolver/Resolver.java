@@ -1,6 +1,6 @@
 package cn.jerry.log4j2.annotation.resolver;
 
-import cn.jerry.logging.ConsoleLogger;
+import cn.jerry.log4j2.annotation.ConsoleLogger;
 import org.apache.logging.log4j.core.util.Loader;
 
 import java.io.*;
