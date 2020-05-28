@@ -401,7 +401,7 @@ public class Resolver {
             if (this.matchTester.matchesAnnotation(type)) {
                 classMatches.add(type);
             }
-        } catch (Throwable t) {
+        } catch (Exception | java.lang.NoClassDefFoundError t) {
             ConsoleLogger.error(this.getClass(), "Could not examine class: " + fqName
                     + ", error4: " + t.getMessage());
         }
