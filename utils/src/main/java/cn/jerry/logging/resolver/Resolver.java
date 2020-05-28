@@ -1,19 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache license, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the license for the specific language governing permissions and
- * limitations under the license.
- */
 package cn.jerry.logging.resolver;
 
 import cn.jerry.logging.ConsoleLogger;
@@ -40,7 +24,7 @@ public class Resolver {
     /**
      * The set of matches being accumulated.
      */
-    private final Set<Class<?>> classMatches = new HashSet<Class<?>>();
+    private final Set<Class<?>> classMatches = new HashSet<>();
 
     public Resolver(ClassLoader classloader, ResolverTester matchTester) {
         this.classloader = classloader;
@@ -64,7 +48,10 @@ public class Resolver {
      * @return the ClassLoader that will be used to scan for classes
      */
     public ClassLoader getClassLoader() {
-        return classloader != null ? classloader : (classloader = Loader.getClassLoader(Resolver.class, null));
+        if (classloader == null) {
+            classloader = Loader.getClassLoader(Resolver.class, null);
+        }
+        return classloader;
     }
 
     /**
@@ -101,16 +88,17 @@ public class Resolver {
      * @param packageName the name of the package from which to start scanning for classes, e.g. {@code net.sourceforge.stripes}
      */
     public void findInPackage(String packageName) {
-        packageName = packageName.replace('.', '/');
-
+        if (packageName == null || packageName.isEmpty()) {
+            return;
+        }
+        final String pkgName = "" + packageName.replace('.', '/');
         final ClassLoader loader = getClassLoader();
         Enumeration<URL> urls;
 
         try {
-            urls = loader.getResources(packageName);
+            urls = loader.getResources(pkgName);
         } catch (final IOException ioe) {
-            ConsoleLogger.error(this.getClass(), "Could not read package: " + packageName);
-            ioe.printStackTrace();
+            ConsoleLogger.error(this.getClass(), "Could not read package: " + pkgName, ioe);
             return;
         }
 
@@ -119,32 +107,25 @@ public class Resolver {
                 final URL url = urls.nextElement();
                 final String urlPath = extractPath(url);
 
-                // ConsoleLogger.info(this.getClass, "Scanning for classes in [" + urlPath + "] matching criteria: " + this.matchTester);
                 // Check for a jar in a war in JBoss
-                if (VFSZIP.equals(url.getProtocol())) {
-                    final String path = urlPath.substring(0, urlPath.length() -
-                            packageName.length() - 2);
+                if (BUNDLE_RESOURCE.equals(url.getProtocol())) {
+                    ConsoleLogger.info(Resolver.class, "Unsupported protocol: " + BUNDLE_RESOURCE);
+                } else if (VFSZIP.equals(url.getProtocol())) {
+                    final String path = urlPath.substring(0, urlPath.length() - pkgName.length() - 2);
                     final URL newURL = new URL(url.getProtocol(), url.getHost(), path);
-                    final JarInputStream stream = new JarInputStream(newURL.openStream());
-                    try {
-                        loadImplementationsInJar(packageName, path, stream);
-                    } finally {
-                        close(stream, newURL);
+                    try (JarInputStream stream = new JarInputStream(newURL.openStream())) {
+                        loadImplementationsInJar(pkgName, path, stream);
                     }
-                } else if (BUNDLE_RESOURCE.equals(url.getProtocol())) {
-                    continue;
                 } else {
                     final File file = new File(urlPath);
                     if (file.isDirectory()) {
-                        loadImplementationsInDirectory(packageName, file);
+                        loadImplementationsInDirectory(pkgName, file);
                     } else {
-                        loadImplementationsInJar(packageName, file);
+                        loadImplementationsInJar(pkgName, file);
                     }
                 }
-            } catch (final IOException ioe) {
+            } catch (final IOException | URISyntaxException ioe) {
                 ConsoleLogger.error(this.getClass(), "could not read entries", ioe);
-            } catch (URISyntaxException e) {
-                ConsoleLogger.error(this.getClass(), "could not read entries", e);
             }
         }
     }
@@ -158,7 +139,7 @@ public class Resolver {
         try {
             path = extractPath(url);
         } catch (Exception e) {
-            ConsoleLogger.error(this.getClass(), "Finding cancelled becauseof failed to extract path, url: " + url + ", error: "
+            ConsoleLogger.error(this.getClass(), "Finding cancelled becauseof failing to extract path, url: " + url + ", error1: "
                     + e.getMessage());
             return;
         }
@@ -168,44 +149,17 @@ public class Resolver {
             path = url.getPath().substring(0, url.getPath().length() -
                     packageName.length() - 2);
         }
-        List<String> jarsPath = new ArrayList<String>();
-        List<String> filesPath = new ArrayList<String>();
-        List<String> classes = new ArrayList<String>();
+        List<String> jarsPath = new ArrayList<>();
+        List<String> filesPath = new ArrayList<>();
+        List<String> classes = new ArrayList<>();
         if (BUNDLE_RESOURCE.equals(url.getProtocol())) {
             return;
         } else if (url.getProtocol().startsWith("vfs")) {
             // for jboss
-            if (!VFSZIP.equals(url.getProtocol())) return;
-            // scan jars and classes in ear/war
-            String basePath;
-            int index = path.indexOf(".war");
-            if (index == -1) index = path.indexOf(".ear");
-            basePath = path.substring(0, index + 4);
-            scanJarsAndClasses(basePath, jarsPath, classes);
+            findInJBoss(path, url, jarsPath, classes);
         } else {
             // for tomcat
-            int index = path.indexOf("/WEB-INF/");
-            if (index == -1) {
-                filesPath.add(path);
-                URL classesUrl = Resolver.class.getResource("/");
-                if (classesUrl != null) filesPath.add(classesUrl.getPath());
-            } else {
-                // scan jar
-                String basePath = path.substring(0, index) + "/WEB-INF/lib/";
-                String[] subFiles = new File(basePath).list();
-                if (subFiles != null) {
-                    for (String subFile : subFiles) {
-                        if (subFile.endsWith(".jar")) {
-                            filesPath.add(basePath + subFile);
-                        }
-                    }
-                }
-                // add classes
-                basePath = path.substring(0, index) + "/WEB-INF/classes/";
-                if (new File(basePath).exists()) {
-                    filesPath.add(basePath);
-                }
-            }
+            findInTomcat(path, filesPath);
         }
         for (String jarPath : jarsPath) {
             loadImplementationsInJar(url.getProtocol(), url.getHost(), jarPath);
@@ -223,16 +177,45 @@ public class Resolver {
         }
     }
 
+    private void findInJBoss(String path, URL url, List<String> jarsPath, List<String> classes) {
+        if (!VFSZIP.equals(url.getProtocol())) return;
+        // scan jars and classes in ear/war
+        String basePath;
+        int index = path.indexOf(".war");
+        if (index == -1) index = path.indexOf(".ear");
+        basePath = path.substring(0, index + 4);
+        scanJarsAndClasses(basePath, jarsPath, classes);
+    }
+
+    private void findInTomcat(String path, List<String> filesPath) {
+        int index = path.indexOf("/WEB-INF/");
+        if (index == -1) {
+            filesPath.add(path);
+            URL classesUrl = Resolver.class.getResource("/");
+            if (classesUrl != null) filesPath.add(classesUrl.getPath());
+        } else {
+            // scan jar
+            String basePath = path.substring(0, index) + "/WEB-INF/lib/";
+            String[] subFiles = new File(basePath).list();
+            if (subFiles != null) {
+                for (String subFile : subFiles) {
+                    if (subFile.endsWith(".jar")) {
+                        filesPath.add(basePath + subFile);
+                    }
+                }
+            }
+            // add classes
+            basePath = path.substring(0, index) + "/WEB-INF/classes/";
+            if (new File(basePath).exists()) {
+                filesPath.add(basePath);
+            }
+        }
+    }
+
     /**
      * scan jars in lib directory in a war/ear
-     *
-     * @param path
-     * @param jarsPath
-     * @param classes
-     * @return
      */
-    private void scanJarsAndClasses(final String path, List<String> jarsPath,
-            List<String> classes) {
+    private void scanJarsAndClasses(final String path, List<String> jarsPath, List<String> classes) {
         try {
             URL newURL = new URL("jar:file:" + path + "!/");
             JarURLConnection jarURLConnection = (JarURLConnection) newURL.openConnection();
@@ -248,18 +231,16 @@ public class Resolver {
                     if (jarsPath != null) {
                         jarsPath.add(path + "/" + jarEntryName);
                     }
-                } else if (!jarEntry.isDirectory() && jarEntryName.endsWith(".class")) {
-                    if (classes != null) {
-                        index = jarEntryName.indexOf("/classes/");
-                        if (index != -1) {
-                            jarEntryName = jarEntryName.substring(index + "/classes/".length());
-                        }
-                        classes.add(jarEntryName);
+                } else if (!jarEntry.isDirectory() && jarEntryName.endsWith(".class") && classes != null) {
+                    index = jarEntryName.indexOf("/classes/");
+                    if (index != -1) {
+                        jarEntryName = jarEntryName.substring(index + "/classes/".length());
                     }
+                    classes.add(jarEntryName);
                 }
             }
         } catch (final IOException ioe) {
-            ConsoleLogger.error(this.getClass(), "Scan jar file failed, path: " + path + ", error: " + ioe.getMessage());
+            ConsoleLogger.error(this.getClass(), "Scan jar file failed, path: " + path + ", error2: " + ioe.getMessage());
         }
     }
 
@@ -275,7 +256,7 @@ public class Resolver {
             urlPath = urlPath.substring(5);
         }
         // If it was in a JAR, grab the path to the jar
-        if (urlPath.indexOf('!') > 0) {
+        if (urlPath.indexOf('!') != -1) {
             urlPath = urlPath.substring(0, urlPath.indexOf('!'));
         }
 
@@ -307,8 +288,8 @@ public class Resolver {
     private void loadImplementationsInDirectory(final String parent, final File location) {
         if (!location.isDirectory()) return;
 
-        List<File> subFiles = new ArrayList<File>();
-        List<String> parents = new ArrayList<String>();
+        List<File> subFiles = new ArrayList<>();
+        List<String> parents = new ArrayList<>();
         subFiles.add(location);
         parents.add(parent);
         File file;
@@ -321,18 +302,21 @@ public class Resolver {
             if (file.isDirectory()) {
                 temp = file.listFiles();
                 if (temp != null) {
-                    for (File subFile : temp) {
-                        subFiles.add(subFile);
-                        parents.add(fileParent == null || fileParent.isEmpty()
-                                ? subFile.getName()
-                                : new StringBuilder(fileParent).append("/")
-                                .append(subFile.getName()).toString());
-                    }
+                    dealSubDir(temp, subFiles, parents, fileParent);
                     size += temp.length;
                 }
             } else {
                 addIfMatching(fileParent);
             }
+        }
+    }
+
+    private void dealSubDir(File[] temp, List<File> subFiles, List<String> parents, String fileParent) {
+        for (File subFile : temp) {
+            subFiles.add(subFile);
+            parents.add(fileParent == null || fileParent.isEmpty()
+                    ? subFile.getName()
+                    : fileParent + "/" + subFile.getName());
         }
     }
 
@@ -344,50 +328,31 @@ public class Resolver {
      * @param jarFile the jar file to be examined for classes
      */
     private void loadImplementationsInJar(final String parent, final File jarFile) {
-        JarInputStream jarStream = null;
-        try {
-            jarStream = new JarInputStream(new FileInputStream(jarFile));
+        String errorMsg = "Could not search jar file '%s' for classes matching criteria: ";
+        try (JarInputStream jarStream = new JarInputStream(new FileInputStream(jarFile))) {
             loadImplementationsInJar(parent, jarFile.getPath(), jarStream);
         } catch (final FileNotFoundException ex) {
-            ConsoleLogger.error(this.getClass(), "Could not search jar file '" + jarFile
-                    + "' for classes matching criteria: " + this.matchTester + " file not found");
-            ex.printStackTrace();
+            ConsoleLogger.error(this.getClass(), String.format(errorMsg, jarFile) + this.matchTester + " file not found", ex);
         } catch (final IOException ioe) {
-            ConsoleLogger.error(this.getClass(), "Could not search jar file '" + jarFile
-                    + "' for classes matching criteria: " + this.matchTester + " due to an IOException");
-            ioe.printStackTrace();
-        } finally {
-            close(jarStream, jarFile);
+            ConsoleLogger.error(this.getClass(), String.format(errorMsg, jarFile) + this.matchTester + " due to an IOException", ioe);
         }
     }
 
     private void loadImplementationsInJar(final String protocol,
             final String host, final String jarPath) {
-        URL newURL = null;
-        JarInputStream stream = null;
+        URL newURL;
         try {
             newURL = new URL(protocol, host, jarPath);
-            stream = new JarInputStream(newURL.openStream());
+        } catch (Exception e) {
+            ConsoleLogger.error(this.getClass(), "Failed to create JarInputStream, url: " + jarPath
+                    + ", error3: " + e.getMessage());
+            return;
+        }
+        try (JarInputStream stream = new JarInputStream(newURL.openStream())) {
             loadImplementationsInJar("", jarPath, stream);
         } catch (Exception e) {
             ConsoleLogger.error(this.getClass(), "Failed to create JarInputStream, url: " + jarPath
                     + ", error: " + e.getMessage());
-        } finally {
-            close(stream, newURL);
-        }
-    }
-
-    /**
-     * @param jarStream
-     * @param source
-     */
-    private void close(final JarInputStream jarStream, final Object source) {
-        if (jarStream != null) {
-            try {
-                jarStream.close();
-            } catch (final IOException e) {
-                ConsoleLogger.error(this.getClass(), "Error closing JAR file stream for " + source, e);
-            }
         }
     }
 
@@ -425,7 +390,7 @@ public class Resolver {
         try {
             final ClassLoader loader = getClassLoader();
             String externalName = fqName.substring(0, fqName.indexOf('.')).replace('/', '.');
-            while (externalName.indexOf(".") == 0) {
+            while (externalName.indexOf('.') == 0) {
                 externalName = externalName.substring(1);
             }
             if (!this.matchTester.matchesPkg(externalName)) {
@@ -436,9 +401,9 @@ public class Resolver {
             if (this.matchTester.matchesAnnotation(type)) {
                 classMatches.add(type);
             }
-        } catch (final Throwable t) {
+        } catch (Exception e) {
             ConsoleLogger.error(this.getClass(), "Could not examine class: " + fqName
-                    + ", error: " + t.getMessage());
+                    + ", error4: " + e.getMessage());
         }
     }
 

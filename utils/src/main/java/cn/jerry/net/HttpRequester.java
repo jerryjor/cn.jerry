@@ -2,28 +2,26 @@ package cn.jerry.net;
 
 import cn.jerry.json.JsonUtil;
 import cn.jerry.logging.LogManager;
-import org.apache.http.Header;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.entity.GzipDecompressingEntity;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
-import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -33,7 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public class HttpRequester {
-    private static Logger logger = LogManager.getLogger();
+    private static final Logger logger = LogManager.getLogger(HttpRequester.class);
 
     private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
@@ -48,13 +46,32 @@ public class HttpRequester {
     }
 
     /**
-     * 执行get请求，参数必须在builder中设置完毕，请求时不支持重设参数
+     * 执行get请求
      *
      * @return 服务器返回结果
      * @throws IOException 请求异常
      */
     public StringHttpResponse doGet() throws IOException {
         return doRequest(this.properties.createGet());
+    }
+
+    /**
+     * 执行get请求，使用提供的新参数，忽略builder时提供的参数，但header及cookie等仍沿用builder时的配置
+     *
+     * @param params 新参数
+     * @return 服务器返回结果
+     * @throws IOException 请求异常
+     */
+    public StringHttpResponse doGet(Map<String, String> params) throws IOException {
+        HttpGet request = this.properties.createGet();
+        String url = this.properties.url;
+        int index = url.indexOf('?');
+        if (index != -1) {
+            url = url.substring(0, index);
+        }
+        url += "?" + URLEncodedUtils.format(createNameValuePairs(params), this.properties.charset);
+        request.setURI(URI.create(url));
+        return doRequest(request);
     }
 
     /**
@@ -92,7 +109,7 @@ public class HttpRequester {
      */
     public StringHttpResponse doJsonBodyPost(Object body) throws IOException {
         HttpPost request = this.properties.createPost();
-        request.addHeader("Content-type", "application/json");
+        request.setHeader("Content-type", "application/json");
         HttpEntity httpEntity = createJsonEntity(body, this.properties.charset);
         request.setEntity(httpEntity);
         return doRequest(request);
@@ -107,12 +124,46 @@ public class HttpRequester {
      * @return 服务器返回结果
      * @throws IOException 请求异常
      */
-    public StringHttpResponse uploadFile(Map<String, String> params, String fileParamName, String filePath)
+    public StringHttpResponse doUpload(Map<String, String> params, String fileParamName, String filePath)
             throws IOException {
         HttpPost request = this.properties.createPost();
-        HttpEntity httpEntity = createFileUploadEntity(params, this.properties.charset, fileParamName, filePath);
+        HttpEntity httpEntity = createFileUploadEntity(params, this.properties.charset, fileParamName, filePath, null);
         request.setEntity(httpEntity);
         return doRequest(request);
+    }
+
+    /**
+     * 执行文件上传请求，忽略builder时提供的参数，但header及cookie等仍沿用builder时的配置
+     *
+     * @param params        新参数
+     * @param fileParamName 文件名
+     * @param fileStream    文件输入流
+     * @return 服务器返回结果
+     * @throws IOException 请求异常
+     */
+    public StringHttpResponse doUpload(Map<String, String> params, String fileParamName, InputStream fileStream)
+            throws IOException {
+        HttpPost request = this.properties.createPost();
+        HttpEntity httpEntity = createFileUploadEntity(params, this.properties.charset, fileParamName, null, fileStream);
+        request.setEntity(httpEntity);
+        return doRequest(request);
+    }
+
+    public ByteHttpResponse doDownload() throws IOException {
+        long st = System.currentTimeMillis();
+        HttpGet request = this.properties.createGet();
+        // 防止屏蔽程序抓取而返回403错误
+        request.addHeader("User-Agent", "Mozilla/4.0 (compatible; MSIE 5.0; Windows NT; DigExt)");
+        HttpClientFactory.Client httpClient = HttpClientFactory.getHttpClient(this.proxyHost, this.proxyPort, this.properties.pooled);
+        ByteHttpResponse response = httpClient.download(request);
+        if (HttpStatus.SC_OK != response.getStatusCode()) {
+            logger.warn("doRequest, server status: {}, uri: [{}]", response.getStatusCode(), request.getURI());
+        }
+        long cost = System.currentTimeMillis() - st;
+        if (cost > 3000L) {
+            logger.info("Requesting [{}] cost {} ms.", request.getURI(), cost);
+        }
+        return response;
     }
 
     /**
@@ -123,74 +174,33 @@ public class HttpRequester {
      */
     private StringHttpResponse doRequest(HttpRequestBase request) throws IOException {
         long st = System.currentTimeMillis();
-
-        StringHttpResponse strResponse = new StringHttpResponse();
-        CloseableHttpClient httpClient = null;
-        CloseableHttpResponse response = null;
-        try {
-            httpClient = HttpClientFactory.getHttpClient(this.proxyHost, this.proxyPort, this.properties.pooled);
-            response = httpClient.execute(request);
-            strResponse.setStatusCode(response.getStatusLine().getStatusCode());
-            HttpEntity entity = withGzip(response)
-                    ? new GzipDecompressingEntity(response.getEntity()) : response.getEntity();
-            // EntityUtils.toString方法会获取InputStream并关闭
-            strResponse.setEntity(EntityUtils.toString(entity, this.properties.charset));
-            if (HttpStatus.SC_OK != strResponse.getStatusCode()) {
-                logger.warn("doRequest, server status: {}, uri: [{}], entity : {}", strResponse.getStatusCode(),
-                        request.getURI(), (isHtml(strResponse.getEntity()) ? "a html" : strResponse.getEntity()));
-            }
-        } catch (IOException e) {
-            request.abort();
-            logger.error("doRequest failed, uri:[" + request.getURI() + "]", e);
-            throw e;
-        } finally {
-            // 如果使用了 EntityUtils.toString，那么可以省略response.close
-//            if (response != null) {
-//                try {
-//                    response.close();
-//                } catch (IOException ioe) {
-//                    logger.error("doRequest, close response failed.", ioe);
-//                }
-//            }
-            if (!this.properties.pooled && httpClient != null) {
-                // 关闭内置连接池
-                try {
-                    httpClient.close();
-                } catch (IOException ioe) {
-                    logger.error("close http client failed.", ioe);
-                }
-            }
+        HttpClientFactory.Client httpClient = HttpClientFactory.getHttpClient(this.proxyHost, this.proxyPort, this.properties.pooled);
+        StringHttpResponse response = httpClient.execute(request, this.properties.charset);
+        if (HttpStatus.SC_OK != response.getStatusCode()) {
+            logger.warn("doRequest, server status: {}, uri: [{}], entity : {}", response.getStatusCode(),
+                    request.getURI(), (isHtml(response.getEntity()) ? "a html" : response.getEntity()));
         }
-
         long cost = System.currentTimeMillis() - st;
         if (cost > 1000L) {
-            logger.info("Requesting [" + request.getURI() + "] cost " + cost + " ms.");
+            logger.info("Requesting [{}] cost {} ms.", request.getURI(), cost);
         }
-        return strResponse;
-    }
-
-    private static boolean withGzip(CloseableHttpResponse response) {
-        Header[] headers = response.getHeaders("Content-Encoding");
-        if (headers == null || headers.length == 0) return false;
-        for (Header h : headers) {
-            if (h.getValue().equals("gzip")) {
-                // 返回头中含有gzip
-                return true;
-            }
-        }
-        return false;
+        return response;
     }
 
     private static boolean isHtml(String str) {
-        return str != null && !(str = str.trim()).isEmpty() && str.charAt(0) == '<';
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+        str = str.trim();
+        return !str.isEmpty() && str.charAt(0) == '<';
     }
 
-    public static Builder newBuilder(String url) throws IOException {
+    public static Builder newBuilder(String url) {
         return new Builder(url);
     }
 
     private static List<NameValuePair> createNameValuePairs(Map<String, String> params) {
-        List<NameValuePair> paramsPair = new ArrayList<NameValuePair>();
+        List<NameValuePair> paramsPair = new ArrayList<>();
         if (params == null || params.isEmpty()) return paramsPair;
         for (Entry<String, String> param : params.entrySet()) {
             paramsPair.add(new BasicNameValuePair(param.getKey(), param.getValue()));
@@ -208,11 +218,15 @@ public class HttpRequester {
     }
 
     private static HttpEntity createFileUploadEntity(Map<String, String> params, Charset charset,
-            String fileParamName, String filePath) {
+                                                     String fileParamName, String filePath, InputStream fileStream) {
         MultipartEntityBuilder builder = MultipartEntityBuilder.create().setCharset(charset);
-        File file = new File(filePath);
-        if (file.exists()) {
-            builder.addBinaryBody(fileParamName, file);
+        if (fileStream != null) {
+            builder.addBinaryBody(fileParamName, fileStream);
+        } else {
+            File file = new File(filePath);
+            if (file.exists()) {
+                builder.addBinaryBody(fileParamName, file);
+            }
         }
         if (params != null && !params.isEmpty()) {
             for (Entry<String, String> param : params.entrySet()) {
@@ -227,11 +241,11 @@ public class HttpRequester {
         private String proxyHost;
         private Integer proxyPort;
 
-        private Builder(String url) throws IOException {
-            if (url == null || (url = url.trim()).isEmpty()) {
-                throw new IOException("url cannot be empty.");
+        private Builder(String url) {
+            if (StringUtils.isBlank(url)) {
+                throw new NullPointerException("url cannot be empty.");
             }
-            this.properties.url = url;
+            this.properties.url = url.trim();
         }
 
         public Builder notKeepAlive() {
@@ -322,9 +336,9 @@ public class HttpRequester {
 
     private static class RequestProperties {
         private String url;
-        private Map<String, String> headers = new HashMap<String, String>();
-        private Map<String, String> params = new HashMap<String, String>();
-        private Map<String, String> cookies = new HashMap<String, String>();
+        private final Map<String, String> headers = new HashMap<>();
+        private final Map<String, String> params = new HashMap<>();
+        private final Map<String, String> cookies = new HashMap<>();
         // 默认使用UTF-8编码
         private Charset charset = DEFAULT_CHARSET;
         // 使用jsonbody方式
@@ -341,11 +355,11 @@ public class HttpRequester {
         private boolean pooled = true;
 
         private HttpGet createGet() {
-            String url = this.url;
+            String requestUrl = this.url;
             if (!this.params.isEmpty()) {
-                url += "?" + URLEncodedUtils.format(createNameValuePairs(this.params), this.charset);
+                requestUrl += "?" + URLEncodedUtils.format(createNameValuePairs(this.params), this.charset);
             }
-            HttpGet request = new HttpGet(url);
+            HttpGet request = new HttpGet(requestUrl);
             fillProperties(request);
             return request;
         }

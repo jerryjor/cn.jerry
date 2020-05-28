@@ -14,7 +14,7 @@ import java.util.List;
 
 public class LoggerDefinitionManager {
 
-    private List<DailyLoggerDefinition> definitions = new ArrayList<DailyLoggerDefinition>();
+    private List<DailyLoggerDefinition> definitions = new ArrayList<>();
 
     public List<DailyLoggerDefinition> getDefinitions() {
         return definitions;
@@ -32,15 +32,14 @@ public class LoggerDefinitionManager {
         final Resolver resolver = new Resolver(Loader.getClassLoader(), new LoggerDefinitionTest());
         resolver.findInProject();
 
-        final List<DailyLoggerDefinition> newDefs = new ArrayList<DailyLoggerDefinition>();
+        final List<DailyLoggerDefinition> newDefs = new ArrayList<>();
         final StringBuilder sb = new StringBuilder("daily rolling logger definition found:");
         for (final Class<?> clazz : resolver.getClasses()) {
-            sb.append("\n\t").append(clazz.getName());
-            try {
-                newDefs.add(clazz.getAnnotation(DailyLoggerDefinition.class));
-                sb.append("\n\t\t").append(LoggerDefinitionTool.getPrintString(
-                        clazz.getAnnotation(DailyLoggerDefinition.class)));
-            } catch (NullPointerException e) {
+            DailyLoggerDefinition annotation = clazz.getAnnotation(DailyLoggerDefinition.class);
+            if (annotation != null) {
+                newDefs.add(annotation);
+                sb.append("\n\t").append(clazz.getName());
+                sb.append("\n\t\t").append(LoggerDefinitionTool.getPrintString(annotation));
             }
         }
 
@@ -60,15 +59,20 @@ public class LoggerDefinitionManager {
      *
      * @since 2.1
      */
-    class LoggerDefinitionTest extends ResolverTester {
-        private String[] basePackages;
+    static class LoggerDefinitionTest extends ResolverTester {
+        private final String[] basePackages;
 
         LoggerDefinitionTest() {
             String basePackage = System.getProperty("Log4jDefinitionBasePackages");
-            if (basePackage == null || (basePackage = basePackage.trim()).isEmpty()) {
-                basePackages = null;
+            if (basePackage != null && !basePackage.isEmpty()) {
+                basePackage = basePackage.trim();
+                if (basePackage.isEmpty()) {
+                    basePackages = null;
+                } else {
+                    basePackages = basePackage.split("[ \t]*,[ \t]*");
+                }
             } else {
-                basePackages = basePackage.split("[ \t]*,[ \t]*");
+                basePackages = null;
             }
         }
 

@@ -1,9 +1,14 @@
 package cn.jerry.logging.definition;
 
 public class LoggerDefinitionTool {
+    private static final String CONSOLE_PATTERN = "%d{yyyy-MM-dd HH:mm:ss.SSS} %p [%t] %c{1.} %m %ex%n";
+
+    private LoggerDefinitionTool() {
+        super();
+    }
 
     public static String buildConsolePattern() {
-        return "%d{yyyy-MM-dd HH:mm:ss.SSS} %p [%t] %c{1.} %m %ex%n";
+        return CONSOLE_PATTERN;
     }
 
     public static String buildContentPattern(DailyLoggerDefinition def) {

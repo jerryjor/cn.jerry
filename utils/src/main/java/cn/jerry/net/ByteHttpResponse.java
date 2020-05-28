@@ -1,14 +1,14 @@
 package cn.jerry.net;
 
-public class StringHttpResponse {
+public class ByteHttpResponse {
     private int statusCode;
-    private String entity;
+    private byte[] entity;
 
-    public StringHttpResponse() {
+    public ByteHttpResponse() {
         super();
     }
 
-    public StringHttpResponse(int statusCode, String entity) {
+    public ByteHttpResponse(int statusCode, byte[] entity) {
         this.statusCode = statusCode;
         this.entity = entity;
     }
@@ -21,16 +21,16 @@ public class StringHttpResponse {
         this.statusCode = statusCode;
     }
 
-    public String getEntity() {
+    public byte[] getEntity() {
         return entity;
     }
 
-    public void setEntity(String entity) {
+    public void setEntity(byte[] entity) {
         this.entity = entity;
     }
 
     @Override
     public String toString() {
-        return "{\"statusCode\":" + statusCode + ", \"entity.length\":" + (entity == null ? 0 : entity.length()) + "}";
+        return "{\"statusCode\":" + statusCode + ", \"entity.length\":" + (entity == null ? 0 : entity.length) + "}";
     }
 }
