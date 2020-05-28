@@ -401,9 +401,9 @@ public class Resolver {
             if (this.matchTester.matchesAnnotation(type)) {
                 classMatches.add(type);
             }
-        } catch (Exception e) {
+        } catch (Throwable t) {
             ConsoleLogger.error(this.getClass(), "Could not examine class: " + fqName
-                    + ", error4: " + e.getMessage());
+                    + ", error4: " + t.getMessage());
         }
     }
 
