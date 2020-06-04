@@ -143,10 +143,10 @@ public class XlsxWriter {
     /**
      * 追加一行表头
      */
-    public XlsxWriter appendHeader(List<String> row) {
+    public XlsxWriter appendHeader(String[] row) {
         createNewRow();
-        if (row == null || row.isEmpty()) return this;
-        totalCols = Math.max(totalCols, row.size());
+        if (row == null || row.length == 0) return this;
+        totalCols = Math.max(totalCols, row.length);
 
         for (String s : row) {
             createNewCell();
@@ -161,8 +161,8 @@ public class XlsxWriter {
     /**
      * 追加一行数据
      */
-    public void appendData(Object[] row) {
-        if (row == null || row.length == 0) return;
+    public XlsxWriter appendData(Object[] row) {
+        if (row == null || row.length == 0) return this;
         totalCols = Math.max(totalCols, row.length);
 
         XlsxCellStyle colDf;
@@ -186,6 +186,7 @@ public class XlsxWriter {
                 writeTextCell(cellValue, true);
             }
         }
+        return this;
     }
 
     /**
@@ -341,11 +342,8 @@ public class XlsxWriter {
             Sheet currSheet = this.workbook.getSheetAt(i);
             for (int j = 0; j < this.totalCols; j++) {
                 currSheet.autoSizeColumn(j);
-                BigDecimal widthRate = BigDecimal.ONE;
                 XlsxCellStyle colDf = this.colsDefinition.get(j);
-                if (colDf != null) {
-                    widthRate = BigDecimal.valueOf(this.colsDefinition.get(j).getTextWidthRate());
-                }
+                BigDecimal widthRate = colDf == null ? BigDecimal.ONE : BigDecimal.valueOf(colDf.getTextWidthRate());
                 int colWidth = new BigDecimal(currSheet.getColumnWidth(j)).multiply(widthRate)
                         .setScale(0, BigDecimal.ROUND_HALF_UP).intValue() + 512;
                 currSheet.setColumnWidth(j, colWidth);
@@ -399,6 +397,10 @@ public class XlsxWriter {
 
     public static XlsxWriter newInstance(XlsxCellStyle[] colsStyle) {
         return new XlsxWriter(colsStyle);
+    }
+
+    public static XlsxWriter newInstance() {
+        return new XlsxWriter(null);
     }
 
 }
