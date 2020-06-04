@@ -312,6 +312,7 @@ public class ChannelService {
             String peerLocation = org.getPeerLocation(pn);
             try {
                 Peer peer = client.newPeer(pn, peerLocation, TLS_CONF.getTlsProperties(pn));
+                peers.add(peer);
             } catch (FileNotFoundException e) {
                 log.error("create peer {} failed because of no TLS_CONF properties file.", pn, e);
                 if (exList.isEmpty()) exList.add(e);

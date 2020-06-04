@@ -153,6 +153,7 @@ public class UserService {
         rr.setSecret(password);
         // 角色：用户管理
         rr.addAttribute(new Attribute(HFCAClient.HFCA_ATTRIBUTE_HFREGISTRARROLES, HFCAClient.HFCA_TYPE_USER));
+        rr.addAttribute(new Attribute(HFCAClient.HFCA_ATTRIBUTE_HFREGISTRARROLES, HFCAClient.HFCA_TYPE_CLIENT));
         // 赋予吊销证书的权限
         rr.addAttribute(new Attribute(HFCAClient.HFCA_ATTRIBUTE_HFREVOKER, "true"));
         caClient.register(rr, org.getCaAdmin());
