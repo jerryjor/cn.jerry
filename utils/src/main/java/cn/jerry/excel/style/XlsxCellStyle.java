@@ -2,7 +2,6 @@ package cn.jerry.excel.style;
 
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 
 /**
  * 空单元格格式定义
@@ -17,7 +16,7 @@ public abstract class XlsxCellStyle {
 	private CellStyle cellStyle;
 
 	// 居中
-	private Short align = XSSFCellStyle.ALIGN_CENTER;
+	private Short align = CellStyle.ALIGN_CENTER;
 	// 颜色
 	private Short fontColor = Font.COLOR_NORMAL;
 	// 加粗

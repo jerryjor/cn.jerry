@@ -26,13 +26,12 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  * @author Jerry.zhao
  */
 public class XlsxReader {
-    private XSSFWorkbook workbook;
+    private final XSSFWorkbook workbook;
+    private final XSSFFormulaEvaluator fe;
     private XSSFSheet sheet;
     private int startRow = 0;
     private int startCol = 0;
     private int rowIndex;
-    private int colIndex;
-    private XSSFFormulaEvaluator fe;
 
     private boolean hasHeader = true;
     private HashMap<Integer, String> header;
@@ -41,9 +40,7 @@ public class XlsxReader {
         super();
         workbook = new XSSFWorkbook(is);
         sheet = workbook.getSheetAt(0);
-        if (workbook != null) {
-            fe = new XSSFFormulaEvaluator(workbook);
-        }
+        fe = new XSSFFormulaEvaluator(workbook);
     }
 
     public XlsxReader(InputStream is, int startRow, int startCol) throws IOException {
@@ -55,11 +52,9 @@ public class XlsxReader {
     /**
      * main method
      * read excel
-     * 
-     * @return
      */
     public <T extends XlsxDataBuilder> List<T> readXlsWithHeader(Class<T> cls) {
-        List<T> records = new ArrayList<T>();
+        List<T> records = new ArrayList<>();
         if (!hasHeader) return records;
 
         int sheetNum = workbook.getNumberOfSheets();
@@ -72,7 +67,7 @@ public class XlsxReader {
             if (hasHeader) {
                 readHeaderRow();
             } else {
-                header = new HashMap<Integer, String>();
+                header = new HashMap<>();
             }
             // read data
             while (rowIndex <= rMax) {
@@ -81,10 +76,8 @@ public class XlsxReader {
 					T t = cls.newInstance();
 	            	t.buildByRow(record);
 	                records.add(t);
-				} catch (InstantiationException e) {
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
+				} catch (InstantiationException | IllegalAccessException e) {
+					// log e
 				}
             }
         }
@@ -97,7 +90,7 @@ public class XlsxReader {
     private void readHeaderRow() {
         Map<Integer, Object> rowData = readRow();
         if (rowData != null) {
-            header = new HashMap<Integer, String>();
+            header = new HashMap<>();
             Set<Integer> keys = rowData.keySet();
             for (Integer key : keys) {
                 String content = (String) rowData.get(key);
@@ -110,11 +103,9 @@ public class XlsxReader {
 
     /**
      * read data row
-     * 
-     * @param records
      */
     private Map<String, Object> readNextRow() {
-        Map<String, Object> record = new HashMap<String, Object>();
+        Map<String, Object> record = new HashMap<>();
         Map<Integer, Object> rowData = readRow();
         if (rowData != null) {
             // build rocord
@@ -129,17 +120,16 @@ public class XlsxReader {
 
     /**
      * read a row
-     * 
-     * @return
      */
     private Map<Integer, Object> readRow() {
         XSSFRow row = sheet.getRow(rowIndex);
         if (row == null) return null;
-        int start = row.getFirstCellNum(), end = row.getLastCellNum();
+        int start = row.getFirstCellNum();
+        int end = row.getLastCellNum();
         if (startCol > end) return null;
 
-        Map<Integer, Object> rowData = new HashMap<Integer, Object>();
-        colIndex = Math.max(startCol, start);
+        Map<Integer, Object> rowData = new HashMap<>();
+        int colIndex = Math.max(startCol, start);
         while (colIndex <= end) {
             Cell cell = row.getCell(colIndex);
             rowData.put(colIndex, readCell(cell));
@@ -151,9 +141,6 @@ public class XlsxReader {
 
     /**
      * read a cell
-     * 
-     * @param cell
-     * @return
      */
     private Object readCell(Cell cell) {
         if (cell == null) return null;
@@ -186,9 +173,6 @@ public class XlsxReader {
 
     /**
      * read formula calculate result
-     * 
-     * @param cell
-     * @return
      */
     private Object readFormula(Cell cell) {
         if (cell == null) return null;
