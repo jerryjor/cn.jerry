@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="ERROR">
+	<Properties>
+		<Property name="fileName">/data/logs/tomcat/fabricService.log</Property>
+	</Properties>
+
+	<!-- see http://logging.apache.org/log4j/2.x/manual/appenders.html -->
+	<appenders>
+		<Console name="consolePrint" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %p [%t] %c{1.} %m %ex%n" />
+		</Console>
+		<RollingFile name="dailyFile" fileName="${fileName}" filePattern="${fileName}.%d{yyyy-MM-dd}">
+			<PatternLayout>
+				<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %p [%t] %c{1.} %m %ex%n</pattern>
+			</PatternLayout>
+			<Policies>
+				<!-- interval:单位，以日志的命名精度来确定，比如yyyy-MM-dd-HH 单位为小时，yyyy-MM-dd-HH-mm 单位为分钟 -->
+				<!-- modulate:是否对封存时间进行调制。若modulate=true，则封存时间将以0点为边界进行偏移计算。 -->
+				<TimeBasedTriggeringPolicy interval="1" modulate="true" />
+			</Policies>
+		</RollingFile>
+	</appenders>
+    <loggers>
+        <asyncRoot level="info">
+            <appender-ref ref="consolePrint" />
+            <appender-ref ref="dailyFile" />
+        </asyncRoot>
+        <asyncLogger name="org" level="error">
+        </asyncLogger>
+        <asyncLogger name="cn.jerry.fabric" level="debug">
+        </asyncLogger>
+    </loggers>
+	<!-- 用来过滤指定优先级的事件。 -->
+	<!-- <ThresholdFilter level="info" /> -->
+</configuration>
