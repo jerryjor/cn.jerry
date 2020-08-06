@@ -37,17 +37,14 @@ import java.security.spec.ECGenParameterSpec;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
-public class BouncyCastleSignatureUtil {
-    private static Logger logger = LogManager.getLogger();
+public class BCSignUtil {
+    private static final Logger logger = LogManager.getLogger();
 
     private static final Provider SECURITY_PROVIDER_BC = new BouncyCastleProvider();
     private static final String SECURITY_ALGORITHM_EC = "EC";
-    private static final int SECURITY_LEVEL = 256;
     private static final String SECURITY_CURVE_NAME = "secp256r1";
-    private static final String HASH_ALGORITHM = "SHA2";
     private static final String SIGNATURE_ALGORITHM = "SHA256withECDSA";
     private static final String UUID = java.util.UUID.randomUUID().toString();
-    private static final SecureRandom RAND = new SecureRandom();;
 
     static {
         Security.addProvider(SECURITY_PROVIDER_BC);
@@ -185,15 +182,11 @@ public class BouncyCastleSignatureUtil {
         return AuthorityKeyIdentifier.getInstance(akiOc.getOctets());
     }
 
-    public KeyPair createKeyPair() {
-        try {
-            ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SECURITY_CURVE_NAME);
-            KeyPairGenerator g = KeyPairGenerator.getInstance(SECURITY_ALGORITHM_EC, SECURITY_PROVIDER_BC);
-            g.initialize(ecGenSpec, RAND);
-            return g.generateKeyPair();
-        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
-            throw new RuntimeException(e);
-        }
+    public KeyPair createKeyPair() throws GeneralSecurityException {
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SECURITY_CURVE_NAME);
+        KeyPairGenerator g = KeyPairGenerator.getInstance(SECURITY_ALGORITHM_EC, SECURITY_PROVIDER_BC);
+        g.initialize(ecGenSpec, new SecureRandom());
+        return g.generateKeyPair();
     }
 
     public X509Certificate createSelfSignedCertificate(CertType certType, KeyPair keyPair, String san)
@@ -240,7 +233,7 @@ public class BouncyCastleSignatureUtil {
 
         return new JcaX509v3CertificateBuilder(
                 subject,
-                new BigInteger(160, RAND),
+                new BigInteger(160, new SecureRandom()),
                 notBefore.getTime(),
                 notAfter.getTime(),
                 subject,

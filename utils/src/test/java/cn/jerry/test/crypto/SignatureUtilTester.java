@@ -1,6 +1,6 @@
 package cn.jerry.test.crypto;
 
-import cn.jerry.crypto.BouncyCastleSignatureUtil;
+import cn.jerry.crypto.BCSignUtil;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -34,16 +34,16 @@ public class SignatureUtilTester {
 
     public static void main(String[] args) {
         try {
-            Certificate cert = BouncyCastleSignatureUtil.getX509CertificateFromPEMString(certStr);
+            Certificate cert = BCSignUtil.getX509CertificateFromPEMString(certStr);
             System.out.println(cert.getType());
             System.out.println(cert.getPublicKey().getAlgorithm());
-            PrivateKey key = BouncyCastleSignatureUtil.getKeyFromPEMString(privateKeyStr);
+            PrivateKey key = BCSignUtil.getKeyFromPEMString(privateKeyStr);
             System.out.println(key.getAlgorithm());
             String testStr = "123456";
-            String signedStr = BouncyCastleSignatureUtil.sign(key, testStr.getBytes(StandardCharsets.UTF_8));
+            String signedStr = BCSignUtil.sign(key, testStr.getBytes(StandardCharsets.UTF_8));
             System.out.println(signedStr);
-            System.out.println(BouncyCastleSignatureUtil.verify(cert.getPublicKey(), signedStr, testStr));
-            System.out.println(BouncyCastleSignatureUtil.verify(cert, signedStr, testStr));
+            System.out.println(BCSignUtil.verify(cert.getPublicKey(), signedStr, testStr));
+            System.out.println(BCSignUtil.verify(cert, signedStr, testStr));
         } catch (CertificateException | IOException | SignatureException | InvalidKeyException e) {
             e.printStackTrace();
         }

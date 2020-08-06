@@ -1,24 +1,25 @@
 package cn.jerry.crypto;
 
-import org.apache.commons.codec.binary.Base64;
-
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 public class Base64Util {
-    private static final Charset UTF_8 = Charset.forName("UTF-8");
+    private Base64Util() {
+        super();
+    }
 
     public static String encodeFromString(String src) {
         if (src == null) return null;
         if (src.isEmpty()) return src;
 
-        return Base64.encodeBase64String(src.getBytes(UTF_8));
+        return new String(Base64.getEncoder().encode(src.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
 
     public static String encode(byte[] src) {
         if (src == null) return null;
         if (src.length == 0) return "";
 
-        return Base64.encodeBase64String(src);
+        return new String(Base64.getEncoder().encode(src), StandardCharsets.UTF_8);
     }
 
     public static String decodeToString(String tar) {
@@ -27,7 +28,7 @@ public class Base64Util {
         tar = tar.trim();
         if (tar.isEmpty()) return tar;
 
-        return new String(Base64.decodeBase64(tar), UTF_8);
+        return new String(Base64.getDecoder().decode(tar.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
     }
 
     public static byte[] decode(String tar) {
@@ -36,7 +37,7 @@ public class Base64Util {
         tar = tar.trim();
         if (tar.isEmpty()) return new byte[0];
 
-        return Base64.decodeBase64(tar);
+        return Base64.getDecoder().decode(tar.getBytes(StandardCharsets.UTF_8));
     }
 
 }

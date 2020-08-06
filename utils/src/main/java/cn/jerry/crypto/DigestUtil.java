@@ -10,6 +10,10 @@ public class DigestUtil {
     private static final String ALGORITHM_SHA384 = "SHA-384";
     private static final String ALGORITHM_SHA512 = "SHA-512";
 
+    private DigestUtil() {
+        super();
+    }
+
     public static String md5(byte[] bytes) {
         return digestAsHexString(ALGORITHM_MD5, bytes);
     }
